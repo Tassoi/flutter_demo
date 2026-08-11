@@ -58,7 +58,7 @@ Dio、SharedPreferences 或 FlutterSecureStorage 类型扩散到通用测试支�
 | 品牌资源 | `tool/generate_branding_test.dart` 验证 PNG 预检、隔离上游生成、完整 Android/iOS 清单和只读漂移 | 可选单色成组省略、连续两次 73 文件逐字节一致、三环境公共路径、Catalog 复用文件与目标 mtime | 伪 PNG、Alpha/安全区/灰度、权利/平台配置、未知 Catalog 文件、单文件过期和第二目标安装失败均稳定失败并恢复旧字节 |
 | Agent 指南 | `tool/generate_agents_test.dart` 在系统临时项目验证初始化、严格只读检查和根/base/partial/样例四方契约 | 相同输入 UTF-8 字节稳定；匹配检查连续输出确定且整个临时目录零写入；根 Goal Mode 与 partial 逐字一致 | 缺失、过期、不可读、非法目标、用户修改、Goal 条款删减、屏幕规则遗漏和注入写入失败均返回稳定编号，不覆盖根规范或留下部分目标 |
 | 认证 | `features/auth/` 验证登录、退出、安全 envelope、启动恢复、凭据注入和受保护页面；`app/router/auth_app_route_redirect_policy_test.dart` 验证应用重定向 | 重复登录、运行时过期、并发 401 单飞、GET/显式幂等重放、调用方取消、串行持久化、generation/销毁后迟到结果、严格 `returnTo` 和 200% 窄屏 | 默认 gateway/持久化失败关闭，损坏 schema、存储/网络/刷新/第二次 401 失败映射稳定，日志、状态、诊断字符串和 Widget 不包含登录输入或凭据 |
-| Golden | `goldens/mobile_ui_golden_test.dart` 验证首页与示例详情参考像素 | `375x812`、1.0 DPR、固定安全区、正常文字和显式 Ahem 测试字体 | 基线缺失或任意像素漂移直接失败；不得用更新截图掩盖布局矩阵失败 |
+| Golden | `goldens/mobile_ui_golden_test.dart` 验证首页与示例详情参考像素 | `375x812`、1.0 DPR、固定安全区、正常文字、显式 Ahem 测试字体，以及 Windows/Linux 分离的精确基线 | 受支持宿主的基线缺失或任意像素漂移直接失败；不得用容差或更新截图掩盖布局矩阵失败 |
 | 阶段二运行时组合 | `app/phase_two_runtime_integration_test.dart` 在同一 `TemplateApp` 中串联适配、生成图标、语言切换、认证重定向/登录/退出和示例路由 | `390x844` 原始安全区、英语切换中文、受控安全凭据写入与精确清理、退出后 locale/路由保持 | fixture 输入不得进入页面或状态；品牌与 Agent 属于平台/工具门禁，不以 Widget 断言替代 |
 | 工程门禁 | `tool/ci/check_architecture_test.dart` 验证允许的分层与 adapter；`check_generated_files_test.dart` 验证锁文件和项目创建/迁移 metadata；`check_platform_environments_test.dart` 验证三环境、语言与字体注册；`check_documentation_test.dart` 验证工程文档契约 | export、跨 Feature、编码路径、相对导入、工具依赖泄漏、旧创建 SDK、缺失元数据、无效 JSON、缺少 scheme、环境值漂移、configuration 专属 Pods include，以及本地文档链接/锚点/命令目标/质量顺序 | 反向依赖、adapter/工具越界、生成/平台漂移、缺失或越界文档链接、不存在命令目标、不安全示例和 README/操作指南/CI 顺序差异均返回稳定规则编号 |
 
@@ -100,8 +100,11 @@ flutter test test/tool/ci/check_documentation_test.dart
 ## Golden 与字体确定性
 
 关键页面 Golden 固定 `375x812`、1.0 DPR、顶部 44/底部 34 安全区，并只在测试主题中显式
-使用 Flutter 测试字体 `Ahem`。这能消除宿主系统 fallback 字体的字形和度量差异，但不会替代
-真实平台字体、200% TextScaler 或六档视口验证。生产主题不得因此指定 Ahem 或禁用系统缩放。
+使用 Flutter 测试字体 `Ahem`。Ahem 消除系统 fallback 字体的字形和度量差异，但 Flutter tester
+在 Windows 与 Linux 上仍会产生一像素字形边缘差异。因此 `baselines/windows/` 与
+`baselines/linux/` 分别保存经过审查的精确 PNG，比较保持零容差；当前没有审查基线的宿主只
+跳过这两项像素测试，六档布局、200% TextScaler、语义和交互测试仍照常执行。生产主题不得因此
+指定 Ahem 或禁用系统缩放。
 
 常规检查只比较基线：
 
@@ -109,9 +112,11 @@ flutter test test/tool/ci/check_documentation_test.dart
 flutter test test/goldens/mobile_ui_golden_test.dart
 ```
 
-只有确认视觉变化符合需求、布局矩阵与全部门禁通过后，才使用 `--update-goldens`，并逐张审查
-PNG。Flutter SDK/引擎升级可能改变 SVG、Material 图标或抗锯齿结果，必须在 CI 的 Ubuntu
-runner 重新验证；详细规则见 `goldens/README.md`。
+只有在 Windows 或 Linux 上确认视觉变化符合需求、布局矩阵与全部门禁通过后，才使用
+`--update-goldens` 更新当前宿主目录，并逐张审查 PNG。Flutter SDK/引擎升级可能改变 SVG、
+Material 图标或抗锯齿结果，必须在 CI 的 Ubuntu runner 重新验证 Linux 基线；新增 macOS 等
+宿主时先建立并审查独立目录，不能复用其他宿主截图或放宽全局阈值。详细规则见
+`goldens/README.md`。
 
 ## 国际化测试
 

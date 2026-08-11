@@ -361,8 +361,9 @@ Widget 帧策略和覆盖率使用边界见 [测试基础设施](test/README.md)
 和生成产物规则见 [ADR 0012](docs/architecture/0012-code-quality-and-ci.md)。
 
 手机布局矩阵对 `en/zh`、6 个视口分别执行正常与 200% 系统文字场景，并验证关键矩形、滚动
-可达性、操作、语义和 LTR 方向。参考尺寸的 Flutter 原生 Golden 只在测试主题内使用 `Ahem` 固定字形度量；
-生产仍使用平台字体并保留系统 `TextScaler`。更新规则见
+可达性、操作、语义和 LTR 方向。参考尺寸的 Flutter 原生 Golden 只在测试主题内使用 `Ahem`
+固定字形度量，并对 Windows/Linux 采用分离的零容差像素基线；生产仍使用平台字体并保留系统
+`TextScaler`。更新规则见
 [Golden 基线说明](test/goldens/README.md)。
 
 ## 平台构建

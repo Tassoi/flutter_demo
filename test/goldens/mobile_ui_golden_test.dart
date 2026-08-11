@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,66 +26,93 @@ void main() {
     await loader.load();
   });
 
-  testWidgets('home page matches the reference mobile golden', (tester) async {
-    final router = AppRouter(appName: 'Flutter Template');
-    final originalDisableShadows = debugDisableShadows;
-    debugDisableShadows = true;
-    try {
-      await pumpTestWidget(
-        tester,
-        _goldenRouterHost(router),
-        surfaceSize: referencePhoneSurfaceSize,
-        padding: _referenceSafeInsets,
-        viewPadding: _referenceSafeInsets,
-      );
-      await tester.pumpAndSettle();
+  testWidgets(
+    'home page matches the reference mobile golden',
+    (tester) async {
+      final router = AppRouter(appName: 'Flutter Template');
+      final originalDisableShadows = debugDisableShadows;
+      debugDisableShadows = true;
+      try {
+        await pumpTestWidget(
+          tester,
+          _goldenRouterHost(router),
+          surfaceSize: referencePhoneSurfaceSize,
+          padding: _referenceSafeInsets,
+          viewPadding: _referenceSafeInsets,
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('template-home-route')), findsOneWidget);
-      await expectLater(
-        find.byKey(_goldenSurfaceKey),
-        matchesGoldenFile('baselines/home_reference_375x812.png'),
-      );
-      expect(tester.takeException(), isNull);
-    } finally {
-      router.dispose();
-      debugDisableShadows = originalDisableShadows;
-    }
-  });
+        expect(find.byKey(const Key('template-home-route')), findsOneWidget);
+        await expectLater(
+          find.byKey(_goldenSurfaceKey),
+          matchesGoldenFile(_goldenBaseline('home_reference_375x812.png')),
+        );
+        expect(tester.takeException(), isNull);
+      } finally {
+        router.dispose();
+        debugDisableShadows = originalDisableShadows;
+      }
+    },
+    skip: _goldenHostDirectory == null,
+  );
 
-  testWidgets('example detail matches the reference mobile golden', (
-    tester,
-  ) async {
-    final router = AppRouter(appName: 'Flutter Template');
-    final originalDisableShadows = debugDisableShadows;
-    debugDisableShadows = true;
-    try {
-      await pumpTestWidget(
-        tester,
-        _goldenRouterHost(router),
-        surfaceSize: referencePhoneSurfaceSize,
-        padding: _referenceSafeInsets,
-        viewPadding: _referenceSafeInsets,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('open-example-detail')));
-      await tester.pumpAndSettle();
+  testWidgets(
+    'example detail matches the reference mobile golden',
+    (tester) async {
+      final router = AppRouter(appName: 'Flutter Template');
+      final originalDisableShadows = debugDisableShadows;
+      debugDisableShadows = true;
+      try {
+        await pumpTestWidget(
+          tester,
+          _goldenRouterHost(router),
+          surfaceSize: referencePhoneSurfaceSize,
+          padding: _referenceSafeInsets,
+          viewPadding: _referenceSafeInsets,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('open-example-detail')));
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('template-detail-route')), findsOneWidget);
-      expect(find.text('Example record'), findsOneWidget);
-      await expectLater(
-        find.byKey(_goldenSurfaceKey),
-        matchesGoldenFile('baselines/example_detail_reference_375x812.png'),
-      );
-      expect(tester.takeException(), isNull);
-    } finally {
-      router.dispose();
-      debugDisableShadows = originalDisableShadows;
-    }
-  });
+        expect(find.byKey(const Key('template-detail-route')), findsOneWidget);
+        expect(find.text('Example record'), findsOneWidget);
+        await expectLater(
+          find.byKey(_goldenSurfaceKey),
+          matchesGoldenFile(
+            _goldenBaseline('example_detail_reference_375x812.png'),
+          ),
+        );
+        expect(tester.takeException(), isNull);
+      } finally {
+        router.dispose();
+        debugDisableShadows = originalDisableShadows;
+      }
+    },
+    skip: _goldenHostDirectory == null,
+  );
 }
 
 const Key _goldenSurfaceKey = Key('mobile-golden-surface');
 const EdgeInsets _referenceSafeInsets = EdgeInsets.only(top: 44, bottom: 34);
+final String? _goldenHostDirectory =
+    Platform.isLinux
+        ? 'linux'
+        : Platform.isWindows
+        ? 'windows'
+        : null;
+
+/// 返回当前受支持测试宿主的零容差 Golden 基线路径。
+///
+/// Ahem 固定字形和度量，但 Windows 与 Linux Flutter tester 对字形边缘的栅格化仍有一像素差异。
+/// 两个平台因此维护各自经过审查的精确 PNG，而不是使用会掩盖小型真实回归的全局差异阈值。
+/// 调用仅发生在未被 [testWidgets] 跳过的受支持宿主；新增宿主必须先生成并审查独立基线。
+String _goldenBaseline(String fileName) {
+  final hostDirectory = _goldenHostDirectory;
+  if (hostDirectory == null) {
+    throw StateError('当前测试宿主没有经过审查的 Golden 基线。');
+  }
+  return 'baselines/$hostDirectory/$fileName';
+}
 
 Widget _goldenRouterHost(AppRouter router) {
   final mediaQueryBuilder = createTestMediaQueryBuilder(
