@@ -191,10 +191,11 @@ jobs:
     timeout-minutes: 60
     env:
       COCOAPODS_VERSION: "1.16.2"
-      DEVELOPER_DIR: /Applications/Xcode_16.2.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       FLUTTER_VERSION: "3.29.0"
       FLUTTER_REVISION: "35c388afb57ef061d06a39b537336c87e0e3d1b1"
       SEGMENT_DOWNLOAD_TIMEOUT_MINS: "5"
+      XCODE_VERSION: "16.4"
 
     steps:
       - name: Check out repository
@@ -262,6 +263,7 @@ jobs:
         run: |
           test -d "$DEVELOPER_DIR"
           xcodebuild -version
+          test "$(xcodebuild -version | sed -n '1p')" = "Xcode $XCODE_VERSION"
           test "$(pod --version)" = "$COCOAPODS_VERSION"
 
       - name: Resolve locked dependencies

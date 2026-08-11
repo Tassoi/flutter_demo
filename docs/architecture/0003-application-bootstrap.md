@@ -78,7 +78,8 @@ flutter build apk --debug --flavor dev \
   --dart-define-from-file=config/dev.example.json
 ```
 
-当前主机不是 macOS，因此本决策不能提供真实 iOS 编译证据；Dart 启动代码由 Android 构建、分析和测试验证，iOS 仍需后续 macOS CI 或开发机执行。
+当前主机不是 macOS；Dart 启动代码由 Android 构建、分析和测试验证，远端 macOS CI 也已完成
+iOS 三环境无签名编译。真实签名和设备启动失败行为仍需业务项目补证。
 
 ## 取舍与后续边界
 

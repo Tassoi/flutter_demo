@@ -17,7 +17,7 @@
 ## 环境准备
 
 1. 使用仓库固定的 Flutter 3.29.0 / Dart 3.7.0。Android 准备 platform 36、build-tools
-   35.0.1、NDK 27.0.12077973、JDK 21 并接受 licenses；iOS 只在 macOS 使用 Xcode 16.2 和
+   35.0.1、NDK 27.0.12077973、JDK 21 并接受 licenses；iOS 只在 macOS 使用 Xcode 16.4 和
    CocoaPods 1.16.2。
 2. 在仓库根执行 `flutter --version`、`dart --version` 和 `flutter doctor -v`，先处理目标平台
    工具链错误。WSL 使用 README 记录的 Windows 批处理入口，不改写全局 SDK。

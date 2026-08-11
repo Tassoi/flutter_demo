@@ -96,9 +96,9 @@ flutter build apk --debug --flavor dev \
   --dart-define-from-file=config/dev.example.json
 ```
 
-当前主机没有 Android 设备或模拟器，因此实际系统返回键、地址栏深链和进程恢复仍需设备验证；
-非 macOS 主机也不能提供 iOS Universal Links 或真实 iOS 构建证据。当前 Widget 测试与 Android
-APK 构建验证 Dart 路由组装和编译边界，不替代上述平台集成测试。
+当前 Widget 测试、Android APK 与远端 iOS 无签名构建验证 Dart 路由组装和编译边界，但实际
+系统返回键、地址栏深链、进程恢复和 iOS Universal Links 仍需对应设备验证；编译通过不替代
+这些平台集成测试。
 
 ## 取舍、迁移与回滚
 

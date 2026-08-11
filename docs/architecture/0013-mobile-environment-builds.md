@@ -109,11 +109,11 @@ flutter build ios --debug --no-codesign --flavor prod \
 CI 继续固定 Flutter 3.29.0 与完整 revision。质量任务通过后：
 
 1. `ubuntu-24.04` 顺序构建 dev、staging、prod 三个 debug APK。
-2. `macos-15` 固定 `/Applications/Xcode_16.2.app` 和 CocoaPods 1.16.2，顺序执行三个
+2. `macos-15` 固定 `/Applications/Xcode_16.4.app` 和 CocoaPods 1.16.2，顺序执行三个
    `--no-codesign` iOS debug 构建。任务只验证编译和 CocoaPods 接线，不签名、不上传、不发布。
 
-当前开发主机不是 macOS，因此 iOS 工程只能本地静态核对；真实 iOS 构建必须以 GitHub-hosted
-macOS 首次运行或后续 macOS 开发机日志为证，不能把 workflow 文件本身当作通过证据。
+当前开发主机不是 macOS，因此本地只能静态核对 iOS 工程；GitHub-hosted macOS job 的实际日志
+是三环境编译证据，不能把 workflow 文件本身当作通过证据。真实签名和设备行为仍需业务项目补证。
 
 ## 回滚
 

@@ -112,7 +112,8 @@ flutter build apk --debug --flavor dev \
 当前没有动态取色、高对比主题、运行时主题编辑器或生产自定义字体。Golden 固定的是 Flutter
 测试字体和参考视口，不代表 Android/iOS 系统字体像素一致，也不能替代真机大字体、TalkBack、
 VoiceOver 或 GPU SVG 验证。颜色对比测试只覆盖明确的语义对，复杂叠加、disabled opacity 和
-未来组件仍需在对应任务中验证；当前非 macOS 主机也不能提供 iOS 构建证据。
+未来组件仍需在对应任务中验证；远端 iOS 编译通过也不等同于 Apple 设备上的字体、VoiceOver 或
+GPU SVG 行为证据。
 
 更改公开 spacing/radius 数值、色彩角色、文字刻度或资源常量名称可能影响所有页面，应作为设计迁移处理并运行全量 Widget 测试。移动或重命名资源必须在同一变更中更新 `pubspec.yaml`、catalog 和测试；不得保留两个路径作为无期限兼容层。
 

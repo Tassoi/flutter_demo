@@ -19,7 +19,7 @@
 
 | 输入 | 当前值 | 主要验证边界 |
 | --- | --- | --- |
-| Flutter | 3.29.0 stable，revision `35c388afb57ef061d06a39b537336c87e0e3d1b1` | 三个 CI job、格式、分析、测试、Android 实际构建与 iOS 待执行构建路径 |
+| Flutter | 3.29.0 stable，revision `35c388afb57ef061d06a39b537336c87e0e3d1b1` | 三个 CI job、格式、分析、测试及 Android/iOS 三环境实际构建 |
 | Dart | 3.7.0 | `pubspec.yaml` 支持范围与 Flutter SDK 携带版本 |
 | flutter_riverpod | 2.6.1 | 根作用域、异步状态、取消和销毁 |
 | go_router | 17.0.0 | 参数、Shell、未知页和同步重定向 |

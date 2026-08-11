@@ -141,7 +141,7 @@ flutter emulators
 
 ## iOS Xcode、CocoaPods 或 xcconfig 失败
 
-iOS 必须在 macOS 上使用 Xcode 16.2 与 CocoaPods 1.16.2 验证。项目只有 `dev`、`staging`、
+iOS 必须在 macOS 上使用 Xcode 16.4 与 CocoaPods 1.16.2 验证。项目只有 `dev`、`staging`、
 `prod` 三个共享 scheme，每个 Debug/Profile/Release configuration 都有专属 wrapper xcconfig
 和对应 Pods include。
 
@@ -156,7 +156,9 @@ flutter build ios --debug --no-codesign --flavor dev \
 出现 Pods include、configuration 或 scheme 错误时，先检查 `ios/Podfile`、`ios/Flutter/*.xcconfig`、
 PBX configuration 与三个 `.xcscheme` 是否同步。不要改回通用 Debug/Release fallback，也不要新增
 `Runner.xcscheme`；通用 scheme 会绕过环境对齐约束。非 macOS 主机的静态检查不能替代 Xcode
-真实编译。
+真实编译。若 GitHub runner 中旧 Xcode 应用仍存在、构建却报告对应 iOS Platform 未安装，说明
+镜像已移除旧平台组件；应同步到仓库固定的完整 Xcode/SDK 组合，不要静默下载未固定平台或改用
+可变的默认 Xcode。
 
 ## release 构建提示缺少签名
 

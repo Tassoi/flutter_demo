@@ -54,7 +54,8 @@ Flutter SDK 位于 Windows 文件系统。其无扩展名 Bash 启动脚本使�
 ### 已知工具链状态与限制
 
 1. Android licenses 已全部接受；`flutter doctor -v` 的 Android toolchain 检查通过，实际 Debug APK 构建也已通过。
-2. 当前主机不是 macOS，无法本地运行 Xcode 或完成 iOS 编译。iOS 工程仍需生成并静态核对，最终编译由 macOS CI 或 macOS 开发机验证。
+2. 当前主机不是 macOS，无法本地运行 Xcode；iOS 工程由本地静态门禁核对，并由远端 macOS CI
+   对三环境执行真实无签名编译。签名和设备行为仍需业务项目在 Apple 设备上验证。
 3. `flutter doctor` 对 Maven 的网络探测仍会超时，但锁文件离线解析和实际 Gradle 构建均成功。全新机器首次下载依赖仍受外部网络可用性影响，不能用本机缓存证据替代 CI 冷启动验证。
 
 ## 决策

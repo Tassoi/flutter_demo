@@ -103,9 +103,14 @@ iOS PluginRegistrant、Generated.xcconfig、`.dart_tool/` 和构建目录是被�
 5. 质量门禁顺序固定为隔离锁文件/metadata 检查、锁定依赖、本地化、SVG 字体与品牌资源只读
    生成检查、Agent 指南临时项目契约、文档契约、架构检查、原生环境一致性、格式、严格分析和
    固定 seed 全量测试。质量任务通过后，Android/iOS 任务才构建三套环境；本阶段没有发布流程。
-6. iOS 任务除固定 Xcode 16.2 外，还把 CocoaPods 1.16.2 安装到独立的 `GEM_HOME/GEM_PATH`，
+6. iOS 任务除固定 Xcode 16.4 外，还把 CocoaPods 1.16.2 安装到独立的 `GEM_HOME/GEM_PATH`，
    并在构建前核对 PATH 中的版本。runner 的预装 gem 会随镜像更新，不得让它静默改写 Pods
    集成结果；固定版本升级仍需经过显式兼容性验证。
+
+`macos-15-arm64` 会保留旧 Xcode 应用但移除部分旧平台组件，固定 Xcode 16.2 时因此会在
+Storyboard 编译阶段报告 iOS 18.2 Platform 未安装。下载未固定平台会增加冷启动网络与时间风险，
+退回逐步弃用的旧 runner 也不能形成持续基线；CI 改为镜像完整提供的 Xcode 16.4/iOS 18.5
+组合，并显式核对版本。该工具链升级必须以三环境真实构建为兼容性证据。
 
 ## 本地等价命令
 
@@ -203,9 +208,9 @@ base + partial 逐字一致，并对 Goal 条款、参考尺寸和 Insets 规则
 
 ## 已知限制与回滚
 
-本地验证不能证明 GitHub-hosted runner 的冷缓存网络一定可用，workflow 必须在远端首次运行后
-补充真实 CI 证据。当前非 macOS 主机不能提供 iOS 编译证据，因此 Task 15 固定的 macOS 无签名
-构建仍属于待远端执行的验证路径，不能在本地报告为已通过。
+本地验证不能证明 GitHub-hosted runner 的冷缓存网络一定可用。当前非 macOS 主机本身不能提供
+iOS 编译证据，但远端 macOS job 已作为三环境无签名构建的权威证据；真实签名、设备启动、
+Keychain 与 VoiceOver 仍不由该 CI 构建证明。
 
 回滚时可以独立移除 workflow、三个 `tool/ci` 检查器及其测试，并恢复 analysis options；若恢复
 宽 SDK 范围，必须同时明确撤销“受支持版本”承诺。不得只删除失败门禁而保留文档中的通过声明，
@@ -219,3 +224,4 @@ base + partial 逐字一致，并对 Goal 条款、参考尺寸和 Insets 规则
 2. [actions/checkout](https://github.com/actions/checkout)
 3. [actions/cache](https://github.com/actions/cache)
 4. [Flutter 持续交付文档](https://docs.flutter.dev/deployment/cd)
+5. [macos-15 旧 Xcode 平台组件策略](https://github.com/actions/runner-images/issues/12758)

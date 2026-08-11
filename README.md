@@ -15,7 +15,7 @@
 | Flutter | 3.29.0 stable，revision `35c388afb57ef061d06a39b537336c87e0e3d1b1` | CI 精确固定；`pubspec.yaml` 只承诺 `>=3.29.0 <3.30.0` |
 | Dart | 3.7.0 | 由上述 Flutter SDK 携带；支持范围 `>=3.7.0 <3.8.0` |
 | Android | platform 36、build-tools 35.0.1、NDK 27.0.12077973、min SDK 23 | JDK 21 已用于实际构建；项目 Java/Kotlin bytecode 目标为 11 |
-| iOS | iOS 12.0、Xcode 16.2、CocoaPods 1.16.2 | 只能在 macOS 构建；CI 隔离安装固定 CocoaPods 并构建三套环境 |
+| iOS | iOS 12.0、Xcode 16.4、CocoaPods 1.16.2 | 只能在 macOS 构建；CI 隔离安装固定 CocoaPods 并构建三套环境 |
 | 环境 | `dev`、`staging`、`prod` | Flutter flavor 和 `APP_ENV` 必须成对且完全一致 |
 
 完整选型证据、许可证、替代方案和主要权衡见
@@ -40,7 +40,7 @@ Android namespace/application ID、MainActivity package、iOS bundle identifier�
 1. 安装 Git 和 Flutter 3.29.0 stable，并确保 `flutter` 与 `dart` 可在终端中执行。
 2. 安装 Android Studio 或等价 Android SDK 工具链，准备 platform 36、build-tools
    35.0.1 和 NDK 27.0.12077973，并接受 Android licenses。
-3. 构建 iOS 时使用 macOS，安装 Xcode 16.2 和 CocoaPods 1.16.2。Linux 或 Windows
+3. 构建 iOS 时使用 macOS，安装 Xcode 16.4 和 CocoaPods 1.16.2。Linux 或 Windows
    不能代替这一平台验证。
 4. 在仓库根目录核对实际环境：
 
@@ -397,7 +397,7 @@ flutter build ios --debug --no-codesign --flavor dev \
 
 同样将两个 `dev` 成对替换为 `staging` 或 `prod`。三个 scheme 分别绑定定制的
 Debug/Profile/Release configuration；不存在通用 Runner scheme。当前仓库除静态门禁和 XML/PBX
-审计外，还由 GitHub Actions macOS runner 使用 Xcode 16.2 与隔离安装的 CocoaPods 1.16.2
+审计外，还由 GitHub Actions macOS runner 使用 Xcode 16.4 与隔离安装的 CocoaPods 1.16.2
 执行三环境无签名构建；真实签名、设备图标蒙版与 VoiceOver 仍需业务项目在 Apple 设备上验证。
 
 ## 示例 Feature 与裁剪
@@ -463,7 +463,7 @@ Task 17 已在隔离临时副本实际执行上述删除；Task 4 在主题、�
 | 受保护请求反复 401 | 确认 gateway 未使用认证装饰器、客户端与 controller 属于同一会话、非 GET 是否确实声明幂等 |
 | WSL 报 `bash\r` | 是否按上文使用 Windows `cmd.exe` 入口 |
 | Android SDK/NDK 构建失败 | `flutter doctor -v` 和基线版本是否齐备，licenses 是否接受 |
-| iOS Pods/xcconfig 失败 | 是否使用 macOS、Xcode 16.2、CocoaPods 1.16.2 及对应 scheme |
+| iOS Pods/xcconfig 失败 | 是否使用 macOS、Xcode 16.4、CocoaPods 1.16.2 及对应 scheme |
 | release 构建缺少签名 | 这是安全默认；必须在版本控制外配置真实项目签名 |
 
 完整症状、原因、命令和不应采取的规避方式见 [常见问题与诊断](docs/troubleshooting.md)。
