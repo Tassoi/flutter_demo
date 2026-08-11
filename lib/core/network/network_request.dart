@@ -25,6 +25,20 @@ enum NetworkMethod {
   String get wireName => name.toUpperCase();
 }
 
+/// 认证凭据刷新后是否允许自动重放一次请求的项目契约。
+///
+/// 默认 [safeMethodOnly] 只允许认证装饰器重放由 [NetworkRequest] 保证无请求体的 GET，
+/// 不会改变基础网络客户端“失败后不自动重试”的规则。[explicitlyIdempotent] 只能由已经
+/// 确认服务端幂等语义的调用方选择；它不表示客户端取消能够回滚服务端副作用，也不允许
+/// 绕过每次请求最多重放一次的上限。
+enum NetworkRequestReplayPolicy {
+  /// 只允许重放项目请求模型能够证明安全的无请求体 GET。
+  safeMethodOnly,
+
+  /// 调用方明确保证对应 endpoint 可以在凭据刷新后重复执行一次。
+  explicitlyIdempotent,
+}
+
 /// 由 Repository 交给 [NetworkClient] 的不可变请求描述。
 ///
 /// 本类型只接受相对 endpoint、非敏感 query/header 和 JSON object/array 请求体。绝对
@@ -43,6 +57,7 @@ final class NetworkRequest {
     required this.headers,
     required this.body,
     required this.requiresCredential,
+    required this.replayPolicy,
   });
 
   /// 创建一个经过安全约束验证的请求。
@@ -65,6 +80,8 @@ final class NetworkRequest {
     Map<String, String> headers = const {},
     Object? body,
     bool requiresCredential = false,
+    NetworkRequestReplayPolicy replayPolicy =
+        NetworkRequestReplayPolicy.safeMethodOnly,
   }) {
     if (!_operationPattern.hasMatch(operation)) {
       throw ArgumentError(
@@ -84,6 +101,7 @@ final class NetworkRequest {
       headers: _freezeHeaders(headers),
       body: _freezeBody(body),
       requiresCredential: requiresCredential,
+      replayPolicy: replayPolicy,
     );
   }
 
@@ -112,11 +130,18 @@ final class NetworkRequest {
   /// 是否要求凭据提供者为本次请求注入凭据。
   final bool requiresCredential;
 
+  /// 凭据刷新成功后允许认证装饰器采用的单次重放策略。
+  ///
+  /// 本字段只被第二阶段认证装饰器读取。基础 [NetworkClient] 不据此自动重试，调用方也
+  /// 不得把它用于普通超时、连接失败或任意服务端错误。
+  final NetworkRequestReplayPolicy replayPolicy;
+
   @override
   String toString() {
     // 请求对象可能被调试工具隐式格式化，因此只暴露稳定元数据，不输出任何线上的数据。
     return 'NetworkRequest(operation: $operation, method: ${method.name}, '
-        'requiresCredential: $requiresCredential)';
+        'requiresCredential: $requiresCredential, '
+        'replayPolicy: ${replayPolicy.name})';
   }
 }
 

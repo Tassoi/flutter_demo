@@ -12,6 +12,7 @@ final RegExp _featurePresentationPattern = RegExp(
 
 const Map<String, String> _singleAdapterPackages = <String, String>{
   'dio': 'lib/core/network/dio_network_client.dart',
+  'flutter_screenutil': 'lib/shared/layout/app_screen_adaptation.dart',
   'flutter_secure_storage': 'lib/core/storage/flutter_secure_value_store.dart',
   'flutter_svg': 'lib/shared/assets/app_assets.dart',
   'go_router': 'lib/app/router/app_router.dart',
@@ -19,6 +20,15 @@ const Map<String, String> _singleAdapterPackages = <String, String>{
   'shared_preferences':
       'lib/core/storage/shared_preferences_preference_store.dart',
 };
+const Set<String> _toolOnlyPackages = <String>{
+  'flutter_launcher_icons',
+  'flutter_native_splash',
+  'icon_font_generator',
+  'image',
+  'xml',
+  'yaml',
+};
+const String _generatedLocalizationPath = 'lib/app/localization/generated/';
 
 /// 检查 Dart 源码是否遵守项目分层和第三方包使用边界。
 ///
@@ -142,6 +152,9 @@ void _validateDirective({
   }
 
   if (parsedUri.scheme.isEmpty) {
+    if (_isAllowedGeneratedLocalizationImport(sourcePath, importUri)) {
+      return;
+    }
     violations.add(
       '[ARCH_RELATIVE_IMPORT] $sourcePath:$line '
       'lib/ 内必须使用 package 导入，禁止相对导入 `$importUri`。',
@@ -177,6 +190,26 @@ void _validateDirective({
     line: line,
     violations: violations,
   );
+}
+
+bool _isAllowedGeneratedLocalizationImport(
+  String sourcePath,
+  String importUri,
+) {
+  return switch ((sourcePath, importUri)) {
+    (
+      'lib/app/localization/generated/app_localizations.dart',
+      'app_localizations_en.dart' || 'app_localizations_zh.dart',
+    ) =>
+      true,
+    (
+      'lib/app/localization/generated/app_localizations_en.dart' ||
+          'lib/app/localization/generated/app_localizations_zh.dart',
+      'app_localizations.dart',
+    ) =>
+      true,
+    _ => false,
+  };
 }
 
 void _validateProjectDependency({
@@ -263,6 +296,24 @@ void _validateRestrictedPackage({
   required int line,
   required List<String> violations,
 }) {
+  if (_toolOnlyPackages.contains(importedPackage)) {
+    violations.add(
+      '[ARCH_TOOL_DEPENDENCY] $sourcePath:$line '
+      '`$importedPackage` 只能由 tool/ 下的仓库生成器使用，不得进入运行时代码。',
+    );
+    return;
+  }
+
+  if (importedPackage == 'intl' || importedPackage == 'flutter_localizations') {
+    if (!sourcePath.startsWith(_generatedLocalizationPath)) {
+      violations.add(
+        '[ARCH_LOCALIZATION_BOUNDARY] $sourcePath:$line '
+        '`$importedPackage` 只能由 Flutter 本地化生成产物使用。',
+      );
+    }
+    return;
+  }
+
   if (importedPackage == 'flutter_riverpod') {
     final bool allowed =
         sourcePath.startsWith('lib/app/') ||

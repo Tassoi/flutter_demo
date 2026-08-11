@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_template/app/localization/app_locale.dart';
+import 'package:flutter_template/app/localization/app_localizations.dart';
 import 'package:flutter_template/app/router/app_route_redirect_policy.dart';
 import 'package:flutter_template/app/router/app_router.dart';
 import 'package:flutter_template/app/state/app_state_scope.dart';
@@ -6,6 +8,7 @@ import 'package:flutter_template/app/theme/app_theme.dart';
 import 'package:flutter_template/features/example/data/bundled_example_repository.dart';
 import 'package:flutter_template/features/example/presentation/example_detail_controller.dart';
 import 'package:flutter_template/features/example/routing/example_route_contract.dart';
+import 'package:flutter_template/shared/layout/app_screen_adaptation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
@@ -28,7 +31,11 @@ void main() {
     final router = AppRouter(appName: 'Flutter Template Dev');
     addTearDown(router.dispose);
 
-    await tester.pumpWidget(_routerHost(router));
+    await pumpTestWidget(
+      tester,
+      _routerHost(router),
+      surfaceSize: referencePhoneSurfaceSize,
+    );
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('app-route-shell')), findsOneWidget);
@@ -50,7 +57,7 @@ void main() {
 
     expect(find.byKey(const Key('template-detail-route')), findsOneWidget);
     expect(find.byKey(const Key('example-item-id')), findsOneWidget);
-    expect(find.text('42'), findsOneWidget);
+    expect(find.text('Item #42'), findsOneWidget);
     expect(_currentUri(tester), Uri(path: '/example/42'));
     expect(
       tester.getSize(find.byKey(const Key('example-detail-back'))).height,
@@ -78,7 +85,11 @@ void main() {
   ) async {
     final router = AppRouter(appName: 'Flutter Template');
     addTearDown(router.dispose);
-    await tester.pumpWidget(_routerHost(router));
+    await pumpTestWidget(
+      tester,
+      _routerHost(router),
+      surfaceSize: referencePhoneSurfaceSize,
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('open-example-detail')));
@@ -103,7 +114,11 @@ void main() {
   ) async {
     final router = AppRouter(appName: 'Flutter Template');
     addTearDown(router.dispose);
-    await tester.pumpWidget(_routerHost(router));
+    await pumpTestWidget(
+      tester,
+      _routerHost(router),
+      surfaceSize: referencePhoneSurfaceSize,
+    );
     await tester.pumpAndSettle();
 
     for (final location in <String>[
@@ -127,7 +142,11 @@ void main() {
   ) async {
     final router = AppRouter(appName: 'Flutter Template');
     addTearDown(router.dispose);
-    await tester.pumpWidget(_routerHost(router));
+    await pumpTestWidget(
+      tester,
+      _routerHost(router),
+      surfaceSize: referencePhoneSurfaceSize,
+    );
     await tester.pumpAndSettle();
 
     final context = tester.element(
@@ -158,7 +177,11 @@ void main() {
       redirectPolicy: policy,
     );
     addTearDown(router.dispose);
-    await tester.pumpWidget(_routerHost(router));
+    await pumpTestWidget(
+      tester,
+      _routerHost(router),
+      surfaceSize: referencePhoneSurfaceSize,
+    );
     await tester.pumpAndSettle();
 
     final context = tester.element(
@@ -181,7 +204,11 @@ void main() {
       redirectPolicy: const _UnsafeRedirectPolicy(),
     );
     addTearDown(router.dispose);
-    await tester.pumpWidget(_routerHost(router));
+    await pumpTestWidget(
+      tester,
+      _routerHost(router),
+      surfaceSize: referencePhoneSurfaceSize,
+    );
     await tester.pumpAndSettle();
 
     final context = tester.element(
@@ -204,7 +231,11 @@ void main() {
       redirectPolicy: const _ThrowingRedirectPolicy(),
     );
     addTearDown(router.dispose);
-    await tester.pumpWidget(_routerHost(router));
+    await pumpTestWidget(
+      tester,
+      _routerHost(router),
+      surfaceSize: referencePhoneSurfaceSize,
+    );
     await tester.pumpAndSettle();
 
     final context = tester.element(
@@ -261,12 +292,18 @@ Widget _routerHost(
     overrides: [
       exampleRepositoryProvider.overrideWithValue(BundledExampleRepository()),
     ],
-    child: MaterialApp.router(
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      routerConfig: router.routerConfig,
-      builder: createTestMediaQueryBuilder(textScaler: textScaler),
+    child: AppScreenAdaptation(
+      builder:
+          (adaptedContext) => MaterialApp.router(
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light(adaptedContext),
+            darkTheme: AppTheme.dark(adaptedContext),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localeListResolutionCallback: resolveAppLocale,
+            routerConfig: router.routerConfig,
+            builder: createTestMediaQueryBuilder(textScaler: textScaler),
+          ),
     ),
   );
 }

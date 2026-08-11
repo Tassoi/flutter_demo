@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_template/app/state/app_state_scope.dart';
 import 'package:flutter_template/app/theme/app_theme.dart';
+import 'package:flutter_template/core/error/app_error.dart';
 import 'package:flutter_template/features/example/domain/example_item.dart';
 import 'package:flutter_template/features/example/presentation/example_detail_controller.dart';
+import 'package:flutter_template/features/example/presentation/example_detail_copy.dart';
 import 'package:flutter_template/features/example/presentation/example_detail_page.dart';
+import 'package:flutter_template/shared/layout/app_screen_adaptation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../support/features/example/controlled_example_repository.dart';
@@ -16,8 +19,10 @@ void main() {
   ) async {
     final repository = ControlledExampleRepository();
     var backCount = 0;
-    await tester.pumpWidget(
+    await pumpTestWidget(
+      tester,
       _pageHost(repository: repository, onBack: () => backCount++),
+      surfaceSize: referencePhoneSurfaceSize,
     );
 
     expect(find.byKey(const Key('example-detail-loading')), findsOneWidget);
@@ -32,7 +37,7 @@ void main() {
       find.text('A neutral description for the selected record.'),
       findsOneWidget,
     );
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Item #1'), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const Key('example-detail-back'))).height,
       greaterThanOrEqualTo(48),
@@ -48,8 +53,10 @@ void main() {
   ) async {
     final repository = ControlledExampleRepository();
     var backCount = 0;
-    await tester.pumpWidget(
+    await pumpTestWidget(
+      tester,
       _pageHost(repository: repository, onBack: () => backCount++),
+      surfaceSize: referencePhoneSurfaceSize,
     );
 
     repository.requests.single.succeed(null);
@@ -66,7 +73,11 @@ void main() {
     tester,
   ) async {
     final repository = ControlledExampleRepository();
-    await tester.pumpWidget(_pageHost(repository: repository));
+    await pumpTestWidget(
+      tester,
+      _pageHost(repository: repository),
+      surfaceSize: referencePhoneSurfaceSize,
+    );
 
     repository.requests.single.fail(
       StateError('private-page-token'),
@@ -164,11 +175,31 @@ Widget _pageHost({
 }) {
   return AppStateScope(
     overrides: [exampleRepositoryProvider.overrideWithValue(repository)],
-    child: MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      home: ExampleDetailPage(itemId: 1, onBack: onBack ?? () {}),
-      builder: createTestMediaQueryBuilder(textScaler: textScaler),
+    child: AppScreenAdaptation(
+      builder:
+          (adaptedContext) => MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light(adaptedContext),
+            home: ExampleDetailPage(
+              itemId: 1,
+              copy: _englishCopy,
+              onBack: onBack ?? () {},
+            ),
+            builder: createTestMediaQueryBuilder(textScaler: textScaler),
+          ),
     ),
   );
 }
+
+final ExampleDetailCopy _englishCopy = ExampleDetailCopy(
+  loadingMessage: 'Loading example item',
+  errorTitle: 'Unable to load item',
+  retryLabel: 'Try again',
+  emptyTitle: 'Item unavailable',
+  emptyMessage: 'No example item exists for this link.',
+  backToHomeLabel: 'Back to home',
+  backTooltip: 'Back',
+  pageTitle: 'Example detail',
+  errorMessage: (AppError _) => 'Something went wrong.',
+  itemIdentifier: (int itemId) => 'Item #$itemId',
+);

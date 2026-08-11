@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_template/app/theme/app_theme.dart';
+import 'package:flutter_template/shared/layout/app_screen_adaptation.dart';
 import 'package:flutter_template/shared/widgets/app_message_feedback.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,7 +10,11 @@ void main() {
   testWidgets('message feedback maps every kind to a themed visual', (
     tester,
   ) async {
-    await tester.pumpWidget(_feedbackHost());
+    await pumpTestWidget(
+      tester,
+      _feedbackHost(),
+      surfaceSize: referencePhoneSurfaceSize,
+    );
     final context = tester.element(find.byKey(const Key('feedback-host')));
     final scheme = Theme.of(context).colorScheme;
     final expectations = <AppMessageKind, ({IconData icon, Color color})>{
@@ -56,7 +61,11 @@ void main() {
     tester,
   ) async {
     var actionCount = 0;
-    await tester.pumpWidget(_feedbackHost());
+    await pumpTestWidget(
+      tester,
+      _feedbackHost(),
+      surfaceSize: referencePhoneSurfaceSize,
+    );
     final context = tester.element(find.byKey(const Key('feedback-host')));
 
     showAppMessageFeedback(
@@ -87,7 +96,11 @@ void main() {
   testWidgets('message action preserves feedback shown by its callback', (
     tester,
   ) async {
-    await tester.pumpWidget(_feedbackHost());
+    await pumpTestWidget(
+      tester,
+      _feedbackHost(),
+      surfaceSize: referencePhoneSurfaceSize,
+    );
     final context = tester.element(find.byKey(const Key('feedback-host')));
 
     showAppMessageFeedback(
@@ -139,7 +152,11 @@ void main() {
   testWidgets(
     'message feedback validates content before touching messenger state',
     (tester) async {
-      await tester.pumpWidget(_feedbackHost());
+      await pumpTestWidget(
+        tester,
+        _feedbackHost(),
+        surfaceSize: referencePhoneSurfaceSize,
+      );
       final context = tester.element(find.byKey(const Key('feedback-host')));
 
       expect(
@@ -168,9 +185,14 @@ void main() {
 }
 
 Widget _feedbackHost({TextScaler textScaler = TextScaler.noScaling}) {
-  return MaterialApp(
-    theme: AppTheme.light(),
-    builder: createTestMediaQueryBuilder(textScaler: textScaler),
-    home: const Scaffold(body: SizedBox.expand(key: Key('feedback-host'))),
+  return AppScreenAdaptation(
+    builder:
+        (adaptedContext) => MaterialApp(
+          theme: AppTheme.light(adaptedContext),
+          builder: createTestMediaQueryBuilder(textScaler: textScaler),
+          home: const Scaffold(
+            body: SizedBox.expand(key: Key('feedback-host')),
+          ),
+        ),
   );
 }

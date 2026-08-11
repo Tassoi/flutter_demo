@@ -77,6 +77,21 @@ jobs:
       - name: Resolve locked dependencies
         run: flutter pub get --enforce-lockfile
 
+      - name: Check generated localizations
+        run: dart run tool/generate_localizations.dart --check
+
+      - name: Check generated SVG icon font
+        run: dart run tool/generate_icon_font.dart --check
+
+      - name: Check generated Android and iOS branding resources
+        run: dart run tool/generate_branding.dart --check
+
+      - name: Check Agent guide generation contract
+        run: flutter test test/tool/generate_agents_test.dart
+
+      - name: Check documentation contracts
+        run: dart tool/ci/check_documentation.dart
+
       - name: Check architecture boundaries
         run: dart tool/ci/check_architecture.dart
 

@@ -1,13 +1,16 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_template/app/bootstrap/app_bootstrap_runtime.dart';
 import 'package:flutter_template/app/bootstrap/startup_error_reporter.dart';
+import 'package:flutter_template/app/localization/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('Flutter runtime forwards framework and platform errors', () {
+  testWidgets('Flutter runtime forwards errors and localizes its safe widget', (
+    tester,
+  ) async {
     final previousFlutterHandler = FlutterError.onError;
     final previousPlatformHandler = PlatformDispatcher.instance.onError;
     final previousErrorWidgetBuilder = ErrorWidget.builder;
@@ -50,12 +53,18 @@ void main() {
     expect(reporter.reports[1].error, same(platformFailure));
     expect(reporter.reports[1].stackTrace, same(platformStack));
     expect(reporter.reports[1].source, StartupErrorSource.platformDispatcher);
-    expect(errorWidget, isA<ErrorWidget>());
-    expect(
-      (errorWidget as ErrorWidget).message,
-      'Unable to render this content.',
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('zh'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: errorWidget,
+      ),
     );
-    expect(errorWidget.message, isNot(contains('private-token-placeholder')));
+
+    final renderedError = tester.widget<ErrorWidget>(find.byType(ErrorWidget));
+    expect(renderedError.message, '无法显示此内容。');
+    expect(renderedError.message, isNot(contains('private-token-placeholder')));
   });
 }
 

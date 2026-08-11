@@ -1,10 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
+import 'package:flutter_template/shared/layout/app_screen_adaptation.dart';
 
 /// 应用布局使用的固定间距刻度。
 ///
-/// Widget 应优先组合这些值，避免在 Feature 中散落无法整体调整的数字。该刻度只表达
-/// 逻辑像素，不按屏幕宽度缩放；安全区、键盘 Insets 和文字缩放仍必须使用 Flutter
-/// 提供的真实平台值。第二阶段的移动端屏幕适配不会改变这些平台 Insets。
+/// Widget 应优先组合这些设计稿源值，避免在 Feature 中散落无法整体调整的数字。正常应用
+/// 必须在 [AppScreenAdaptation] 下通过 [AppDesignUnitContext.du] 解析这些值，不能把常量
+/// 直接当成设备逻辑像素。安全区、键盘 Insets 和其他平台值不属于本刻度，也不得参与换算。
 ///
 /// token 位于 `shared/design`，使 `app/` 的主题组装和跨 Feature 组件都能依赖同一来源，
 /// 同时避免 `shared/` 反向依赖 composition root。
@@ -36,23 +39,26 @@ abstract final class AppSpacing {
 
 /// 应用组件使用的圆角刻度。
 ///
-/// 卡片、输入框和弹窗默认使用不超过 8 逻辑像素的圆角，保持模板安静、紧凑且适合
-/// 高频操作界面。Feature 不应自行创建新的全局圆角体系；确有局部视觉语义时应在对应
-/// Widget 内说明原因。
+/// 卡片、输入框和弹窗默认使用不超过 8 设计单位的圆角，保持模板安静、紧凑且适合高频操作
+/// 界面。正常应用必须先通过 [AppDesignUnitContext.du] 解析半径；Feature 不应自行创建新的
+/// 全局圆角体系，确有局部视觉语义时应在对应 Widget 内说明原因。
 abstract final class AppRadii {
   /// 小型控件和轻量边框使用的圆角半径。
   static const double small = 4;
 
   /// 卡片、输入框和弹窗使用的默认圆角半径。
   static const double medium = 8;
+}
 
-  /// 由 [small] 构造的四角统一边界。
-  static const BorderRadius smallBorderRadius = BorderRadius.all(
-    Radius.circular(small),
-  );
-
-  /// 由 [medium] 构造的四角统一边界。
-  static const BorderRadius mediumBorderRadius = BorderRadius.all(
-    Radius.circular(medium),
-  );
+/// 应用中需要同时满足设计比例与平台可用性的尺寸下限。
+///
+/// 普通几何值可以随宽度缩小，但可点击目标若在窄屏同步缩到 48 逻辑像素以下，会损害触摸和
+/// 无障碍可用性。[minimumTouchTarget] 因此把设计稿的 48 单位按宽度换算后，再以真实 48
+/// 逻辑像素作为下限；宽屏仍可按设计比例放大。该规则只用于交互边界，不能用来钳制普通
+/// 间距、图标、文字或系统 Insets。
+abstract final class AppDimensions {
+  /// 解析按钮、图标按钮等主要交互元素的最小边长。
+  static double minimumTouchTarget(BuildContext context) {
+    return math.max(48.0, context.du(48));
+  }
 }

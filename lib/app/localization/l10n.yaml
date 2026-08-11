@@ -1,0 +1,17 @@
+arb-dir: lib/app/localization/arb
+template-arb-file: app_en.arb
+output-dir: lib/app/localization/generated
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+synthetic-package: false
+required-resource-attributes: true
+nullable-getter: false
+header-file: generated_header.txt
+untranslated-messages-file: lib/app/localization/generated/untranslated_messages.json
+preferred-supported-locales:
+  - en
+  - zh
+format: true
+use-escaping: true
+use-named-parameters: true
+suppress-warnings: false

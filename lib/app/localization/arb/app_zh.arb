@@ -1,0 +1,255 @@
+{
+  "@@locale": "zh",
+  "applicationUnavailableTitle": "应用暂不可用",
+  "@applicationUnavailableTitle": {
+    "description": "安全启动失败应用的窗口标题。"
+  },
+  "applicationStartupFailedMessage": "应用无法启动。",
+  "@applicationStartupFailedMessage": {
+    "description": "启动失败时展示给用户的稳定且不含诊断细节的说明。"
+  },
+  "applicationStartupFailedSemantics": "应用启动失败",
+  "@applicationStartupFailedSemantics": {
+    "description": "启动失败状态供辅助技术播报的语义标签。"
+  },
+  "unableToRenderContent": "无法显示此内容。",
+  "@unableToRenderContent": {
+    "description": "Flutter Widget 构建失败时替代原始异常详情的安全文案。"
+  },
+  "languageMenuTooltip": "切换语言",
+  "@languageMenuTooltip": {
+    "description": "打开应用语言选择菜单的按钮提示。"
+  },
+  "languageFollowSystem": "跟随系统",
+  "@languageFollowSystem": {
+    "description": "语言选择菜单中跟随设备系统语言的选项。"
+  },
+  "languageEnglish": "英语",
+  "@languageEnglish": {
+    "description": "语言选择菜单中的英语选项。"
+  },
+  "languageChinese": "中文",
+  "@languageChinese": {
+    "description": "语言选择菜单中的中文选项。"
+  },
+  "languagePreferenceSaveFailed": "无法保存语言偏好。",
+  "@languagePreferenceSaveFailed": {
+    "description": "语言偏好写入普通存储失败时展示的安全反馈。"
+  },
+  "openProtectedArea": "打开受保护页面",
+  "@openProtectedArea": {
+    "description": "首页进入认证模块受保护示例页面的操作。"
+  },
+  "authSignInTitle": "登录",
+  "@authSignInTitle": {
+    "description": "认证登录页面标题。"
+  },
+  "authIdentifierLabel": "账号",
+  "@authIdentifierLabel": {
+    "description": "登录标识符输入框标签，不预设邮箱或手机号协议。"
+  },
+  "authPasswordLabel": "密码",
+  "@authPasswordLabel": {
+    "description": "认证密码输入框标签。"
+  },
+  "authIdentifierRequired": "请输入账号。",
+  "@authIdentifierRequired": {
+    "description": "登录标识符为空时的本地表单校验文案。"
+  },
+  "authPasswordRequired": "请输入密码。",
+  "@authPasswordRequired": {
+    "description": "登录密码为空时的本地表单校验文案。"
+  },
+  "authShowPassword": "显示密码",
+  "@authShowPassword": {
+    "description": "显示密码内容的图标按钮提示。"
+  },
+  "authHidePassword": "隐藏密码",
+  "@authHidePassword": {
+    "description": "隐藏密码内容的图标按钮提示。"
+  },
+  "authSubmitSignIn": "登录",
+  "@authSubmitSignIn": {
+    "description": "提交认证登录表单的主要操作。"
+  },
+  "authSessionLoading": "正在恢复会话",
+  "@authSessionLoading": {
+    "description": "受保护路由等待安全会话恢复时的状态说明。"
+  },
+  "authAccountTitle": "受保护页面",
+  "@authAccountTitle": {
+    "description": "认证成功后受保护示例页面的标题。"
+  },
+  "authSessionActive": "当前会话有效。",
+  "@authSessionActive": {
+    "description": "不包含用户资料或凭据的已认证状态说明。"
+  },
+  "authSignOut": "退出登录",
+  "@authSignOut": {
+    "description": "清除当前认证会话的退出操作。"
+  },
+  "authFailureUnavailable": "登录服务暂不可用。",
+  "@authFailureUnavailable": {
+    "description": "认证服务未配置或网络不可用时的安全失败文案。"
+  },
+  "authFailureRejected": "账号或密码未通过验证。",
+  "@authFailureRejected": {
+    "description": "合并账号存在性与密码错误原因的登录拒绝文案。"
+  },
+  "authFailureSessionExpired": "会话已失效，请重新登录。",
+  "@authFailureSessionExpired": {
+    "description": "刷新失败或会话失效后的安全提示。"
+  },
+  "authFailurePersistence": "安全会话存储不可用。",
+  "@authFailurePersistence": {
+    "description": "安全凭据无法可靠读写或删除时的提示。"
+  },
+  "authFailureUnexpected": "无法完成登录。",
+  "@authFailureUnexpected": {
+    "description": "没有更具体稳定分类的认证失败文案。"
+  },
+  "openExampleDetail": "打开示例详情",
+  "@openExampleDetail": {
+    "description": "首页进入示例详情流程的主要操作。"
+  },
+  "invalidExampleLinkTitle": "示例链接无效",
+  "@invalidExampleLinkTitle": {
+    "description": "示例详情路由参数无效时的安全标题。"
+  },
+  "invalidExampleLinkMessage": "无法打开此示例条目链接。",
+  "@invalidExampleLinkMessage": {
+    "description": "示例详情路由参数无效时且不回显 URI 的说明。"
+  },
+  "pageNotFoundTitle": "页面不存在",
+  "@pageNotFoundTitle": {
+    "description": "未知路由页面的安全标题。"
+  },
+  "pageNotFoundMessage": "请求的页面当前不可用。",
+  "@pageNotFoundMessage": {
+    "description": "未知路由页面中不回显请求 URI 的说明。"
+  },
+  "returnHome": "返回首页",
+  "@returnHome": {
+    "description": "从安全路由错误页返回首页的操作。"
+  },
+  "exampleDetailLoading": "正在加载示例条目",
+  "@exampleDetailLoading": {
+    "description": "示例详情首次加载或重试时的状态说明。"
+  },
+  "exampleDetailErrorTitle": "无法加载条目",
+  "@exampleDetailErrorTitle": {
+    "description": "示例详情加载失败时的稳定标题。"
+  },
+  "tryAgain": "重试",
+  "@tryAgain": {
+    "description": "可恢复失败状态中的重试操作。"
+  },
+  "exampleItemUnavailableTitle": "条目不可用",
+  "@exampleItemUnavailableTitle": {
+    "description": "示例详情成功返回空数据时的标题。"
+  },
+  "exampleItemUnavailableMessage": "此链接没有对应的示例条目。",
+  "@exampleItemUnavailableMessage": {
+    "description": "示例详情成功返回空数据时的说明。"
+  },
+  "backToHome": "返回首页",
+  "@backToHome": {
+    "description": "从示例空状态返回首页的操作。"
+  },
+  "back": "返回",
+  "@back": {
+    "description": "示例详情顶部返回按钮的提示。"
+  },
+  "exampleDetailTitle": "示例详情",
+  "@exampleDetailTitle": {
+    "description": "示例详情页面的固定标题。"
+  },
+  "exampleItemIdentifier": "条目编号：{itemId}",
+  "@exampleItemIdentifier": {
+    "description": "使用当前 locale 数字格式展示示例条目标识。",
+    "placeholders": {
+      "itemId": {
+        "type": "int",
+        "format": "decimalPattern",
+        "description": "已经通过路由验证的正整数条目标识。"
+      }
+    }
+  },
+  "exampleItemCount": "{count, plural, other{{count} 个示例条目}}",
+  "@exampleItemCount": {
+    "description": "按当前 locale 复数规则展示示例条目数量。",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "非负的示例条目数量。"
+      }
+    }
+  },
+  "exampleUpdatedOn": "更新于 {date}",
+  "@exampleUpdatedOn": {
+    "description": "使用当前 locale 的中等日期格式展示示例更新时间。",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd",
+        "description": "需要展示的示例更新时间。"
+      }
+    }
+  },
+  "errorConfigurationInvalid": "应用配置无效。",
+  "@errorConfigurationInvalid": {
+    "description": "配置内容不符合安全约束时的用户兜底文案。"
+  },
+  "errorConfigurationUnavailable": "应用配置不可用。",
+  "@errorConfigurationUnavailable": {
+    "description": "配置无法读取时的用户兜底文案。"
+  },
+  "errorStorageUnavailable": "本地存储不可用。",
+  "@errorStorageUnavailable": {
+    "description": "本地存储无法初始化时的用户兜底文案。"
+  },
+  "errorStorageRead": "无法读取本地数据。",
+  "@errorStorageRead": {
+    "description": "本地数据读取失败时的用户兜底文案。"
+  },
+  "errorStorageWrite": "无法保存本地数据。",
+  "@errorStorageWrite": {
+    "description": "本地数据写入失败时的用户兜底文案。"
+  },
+  "errorStorageDelete": "无法移除本地数据。",
+  "@errorStorageDelete": {
+    "description": "本地数据删除失败时的用户兜底文案。"
+  },
+  "errorStorageClear": "无法清理本地数据。",
+  "@errorStorageClear": {
+    "description": "本地数据清理失败时的用户兜底文案。"
+  },
+  "errorNetworkConnection": "无法连接服务。",
+  "@errorNetworkConnection": {
+    "description": "网络连接阶段失败时的用户兜底文案。"
+  },
+  "errorNetworkTimeout": "请求耗时过长。",
+  "@errorNetworkTimeout": {
+    "description": "网络请求超时时的用户兜底文案。"
+  },
+  "errorNetworkCancelled": "请求已取消。",
+  "@errorNetworkCancelled": {
+    "description": "网络请求被取消时的用户兜底文案。"
+  },
+  "errorNetworkResponse": "服务无法完成请求。",
+  "@errorNetworkResponse": {
+    "description": "服务返回非成功状态时的用户兜底文案。"
+  },
+  "errorNetworkParse": "服务返回了无法识别的响应。",
+  "@errorNetworkParse": {
+    "description": "服务响应无法安全解析时的用户兜底文案。"
+  },
+  "errorCredentialsUnavailable": "此请求没有可用凭据。",
+  "@errorCredentialsUnavailable": {
+    "description": "受保护请求缺少可用凭据时的用户兜底文案。"
+  },
+  "errorUnexpected": "出现了问题。",
+  "@errorUnexpected": {
+    "description": "没有更具体稳定错误分类时的用户兜底文案。"
+  }
+}

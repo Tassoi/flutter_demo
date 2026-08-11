@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:yaml/yaml.dart';
+
 const Map<String, ({String displayName, String suffix})> _environmentContracts =
     <String, ({String displayName, String suffix})>{
       'dev': (displayName: 'Flutter Template Dev', suffix: '.dev'),
@@ -9,12 +11,18 @@ const Map<String, ({String displayName, String suffix})> _environmentContracts =
     };
 
 const List<String> _requiredPaths = <String>[
+  'pubspec.yaml',
   'lib/app/config/app_config.dart',
   'config/dev.example.json',
   'config/staging.example.json',
   'config/prod.example.json',
   'android/app/build.gradle.kts',
   'android/app/src/main/AndroidManifest.xml',
+  'android/app/src/main/res/drawable/launch_background.xml',
+  'android/app/src/main/res/drawable-v21/launch_background.xml',
+  'android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml',
+  'android/app/src/main/res/values-v31/styles.xml',
+  'android/app/src/main/res/values-night-v31/styles.xml',
   'ios/Flutter/Debug.xcconfig',
   'ios/Flutter/Release.xcconfig',
   'ios/Flutter/Debug-dev.xcconfig',
@@ -28,6 +36,10 @@ const List<String> _requiredPaths = <String>[
   'ios/Flutter/Release-prod.xcconfig',
   'ios/Podfile',
   'ios/Runner/Info.plist',
+  'ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json',
+  'ios/Runner/Assets.xcassets/LaunchBackground.imageset/Contents.json',
+  'ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json',
+  'ios/Runner/Base.lproj/LaunchScreen.storyboard',
   'ios/Runner/Runner.entitlements',
   'ios/Runner.xcodeproj/project.pbxproj',
   'ios/Runner.xcodeproj/xcshareddata/xcschemes/dev.xcscheme',
@@ -53,11 +65,17 @@ List<String> validatePlatformEnvironments(Map<String, String> files) {
     }
   }
 
+  final String? pubspec = files['pubspec.yaml'];
+  if (pubspec != null) {
+    _validateFlutterFontRegistration(pubspec, violations);
+  }
+
   final String? dartConfig = files['lib/app/config/app_config.dart'];
   if (dartConfig != null) {
     _validateDartConfig(dartConfig, violations);
   }
   _validateExampleConfigs(files, violations);
+  _validateBrandingResources(files, violations);
 
   final String? androidGradle = files['android/app/build.gradle.kts'];
   if (androidGradle != null) {
@@ -93,6 +111,37 @@ List<String> validatePlatformEnvironments(Map<String, String> files) {
 
   violations.sort();
   return violations;
+}
+
+void _validateFlutterFontRegistration(String content, List<String> violations) {
+  try {
+    final Object? document = loadYaml(content);
+    final Object? flutter = document is YamlMap ? document['flutter'] : null;
+    final Object? fonts = flutter is YamlMap ? flutter['fonts'] : null;
+    final List<YamlMap> matching =
+        fonts is YamlList
+            ? fonts
+                .whereType<YamlMap>()
+                .where((YamlMap entry) => entry['family'] == 'TemplateIcons')
+                .toList()
+            : <YamlMap>[];
+    final Object? entries =
+        matching.length == 1 ? matching.single['fonts'] : null;
+    final bool valid =
+        entries is YamlList &&
+        entries.length == 1 &&
+        entries.single is YamlMap &&
+        (entries.single as YamlMap)['asset'] ==
+            'assets/fonts/template_icons.otf';
+    if (!valid) {
+      violations.add(
+        '[PLATFORM_FLUTTER_ICON_FONT] pubspec.yaml 必须为 Android/iOS '
+        '注册固定 TemplateIcons OTF。',
+      );
+    }
+  } on Object {
+    violations.add('[PLATFORM_FLUTTER_ICON_FONT] pubspec.yaml 无法解析固定字体注册。');
+  }
 }
 
 /// 从项目根目录读取固定配置并执行原生环境一致性检查。
@@ -284,6 +333,12 @@ void _validateAndroidManifest(String content, List<String> violations) {
       '避免恢复无法由原设备 Keystore 解密的安全存储密文。',
     );
   }
+  if (_countOccurrences(content, 'android:icon="@mipmap/ic_launcher"') != 1) {
+    violations.add(
+      '[PLATFORM_ANDROID_BRANDING] android/app/src/main/AndroidManifest.xml '
+      '必须唯一引用公共 @mipmap/ic_launcher。',
+    );
+  }
 
   const List<String> markers = <String>[
     'android:label="@string/app_name"',
@@ -354,10 +409,11 @@ void _validateXcodeProject(String content, List<String> violations) {
           !appBlock.contains(
             'PRODUCT_BUNDLE_IDENTIFIER = $expectedBundleId;',
           ) ||
+          !appBlock.contains('ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;') ||
           !appBlock.contains(expectedBaseConfig)) {
         violations.add(
           '[PLATFORM_IOS_CONFIG] ios/Runner.xcodeproj/project.pbxproj '
-          '$configuration 的环境、展示名、bundle id 或基础配置不一致。',
+          '$configuration 的环境、展示名、bundle id、AppIcon 或基础配置不一致。',
         );
       }
 
@@ -396,6 +452,71 @@ void _validateXcodeProject(String content, List<String> violations) {
     violations.add(
       '[PLATFORM_IOS_CONFIG] ios/Runner.xcodeproj/project.pbxproj '
       '不得保留不带环境后缀的通用 build configuration。',
+    );
+  }
+}
+
+void _validateBrandingResources(
+  Map<String, String> files,
+  List<String> violations,
+) {
+  final String adaptiveIcon =
+      files['android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'] ?? '';
+  if (!adaptiveIcon.contains('@drawable/ic_launcher_background') ||
+      !adaptiveIcon.contains('@drawable/ic_launcher_foreground') ||
+      !adaptiveIcon.contains('@drawable/ic_launcher_monochrome')) {
+    violations.add(
+      '[PLATFORM_ANDROID_BRANDING] Adaptive Icon 必须引用公共背景、前景和单色图层。',
+    );
+  }
+
+  for (final String path in <String>[
+    'android/app/src/main/res/drawable/launch_background.xml',
+    'android/app/src/main/res/drawable-v21/launch_background.xml',
+  ]) {
+    final String content = files[path] ?? '';
+    if (!content.contains('@drawable/background') ||
+        !content.contains('@drawable/splash')) {
+      violations.add('[PLATFORM_ANDROID_BRANDING] $path 必须引用公共背景和启动 Logo。');
+    }
+  }
+  for (final String path in <String>[
+    'android/app/src/main/res/values-v31/styles.xml',
+    'android/app/src/main/res/values-night-v31/styles.xml',
+  ]) {
+    final String content = files[path] ?? '';
+    if (!content.contains('android:windowSplashScreenBackground') ||
+        !content.contains('@drawable/android12splash')) {
+      violations.add(
+        '[PLATFORM_ANDROID_BRANDING] $path 必须引用 Android 12 公共启动资源。',
+      );
+    }
+  }
+
+  final String appIcon =
+      files['ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json'] ??
+      '';
+  final String launchImage =
+      files['ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json'] ??
+      '';
+  final String launchBackground =
+      files['ios/Runner/Assets.xcassets/LaunchBackground.imageset/Contents.json'] ??
+      '';
+  final String launchScreen =
+      files['ios/Runner/Base.lproj/LaunchScreen.storyboard'] ?? '';
+  if (!appIcon.contains('Icon-App-1024x1024@1x.png')) {
+    violations.add(
+      '[PLATFORM_IOS_BRANDING] AppIcon Catalog 缺少 1024 x 1024 marketing 图标。',
+    );
+  }
+  if (!launchImage.contains('LaunchImage.png') ||
+      !launchImage.contains('LaunchImage@2x.png') ||
+      !launchImage.contains('LaunchImage@3x.png') ||
+      !launchBackground.contains('background.png') ||
+      !launchScreen.contains('image="LaunchImage"') ||
+      !launchScreen.contains('image="LaunchBackground"')) {
+    violations.add(
+      '[PLATFORM_IOS_BRANDING] iOS LaunchScreen 必须引用公共 Logo 与背景 Catalog。',
     );
   }
 }
@@ -457,6 +578,17 @@ void _validateIosSupportFiles(
     violations.add(
       '[PLATFORM_IOS_PLIST] ios/Runner/Info.plist '
       '没有读取展示名或环境 build setting。',
+    );
+  }
+  if (infoPlist != null &&
+      !RegExp(
+        r'<key>\s*CFBundleLocalizations\s*</key>\s*'
+        r'<array>\s*<string>\s*en\s*</string>\s*'
+        r'<string>\s*zh\s*</string>\s*</array>',
+      ).hasMatch(infoPlist)) {
+    violations.add(
+      '[PLATFORM_IOS_LOCALIZATIONS] ios/Runner/Info.plist '
+      '必须按 en、zh 顺序声明当前生成资源。',
     );
   }
 

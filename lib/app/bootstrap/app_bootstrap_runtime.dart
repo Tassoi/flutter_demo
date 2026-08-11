@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_template/app/bootstrap/startup_error_reporter.dart';
+import 'package:flutter_template/app/localization/app_localizations.dart';
 
 const _safeErrorWidgetMessage = 'Unable to render this content.';
 
@@ -61,15 +62,29 @@ final class FlutterAppBootstrapRuntime implements AppBootstrapRuntime {
 
     // Flutter 默认的 debug ErrorWidget 会显示 exception.toString()，可能把配置或
     // 个人数据直接暴露在屏幕上。原始详情已经通过 FlutterError.onError 进入 reporter，
-    // 因此替代 Widget 只渲染稳定且不敏感的固定文案。
-    ErrorWidget.builder = (_) {
-      return ErrorWidget.withDetails(message: _safeErrorWidgetMessage);
-    };
+    // 因此替代 Widget 优先渲染当前语言的稳定安全文案；本地化树尚未建立时才使用固定
+    // 英语兜底，且两条路径都不接收错误详情。
+    ErrorWidget.builder = (_) => const _LocalizedSafeErrorWidget();
   }
 
   /// 把已经完成组装的 Widget 树交给 Flutter [runApp]。
   @override
   void runApplication(Widget application) {
     runApp(application);
+  }
+}
+
+final class _LocalizedSafeErrorWidget extends StatelessWidget {
+  const _LocalizedSafeErrorWidget();
+
+  @override
+  Widget build(BuildContext context) {
+    final localizations = Localizations.of<AppLocalizations>(
+      context,
+      AppLocalizations,
+    );
+    return ErrorWidget.withDetails(
+      message: localizations?.unableToRenderContent ?? _safeErrorWidgetMessage,
+    );
   }
 }

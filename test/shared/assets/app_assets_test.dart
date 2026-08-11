@@ -16,13 +16,13 @@ void main() {
       try {
         await tester.pumpWidget(
           MaterialApp(
-            theme: AppTheme.light(),
+            theme: AppTheme.fallbackLight(),
             home: Center(
               child: AppAssets.templateLayers.image(
                 key: assetKey,
                 width: 64,
                 height: 64,
-                color: AppTheme.light().colorScheme.tertiary,
+                color: AppTheme.fallbackLight().colorScheme.tertiary,
                 semanticsLabel: semanticsLabel,
               ),
             ),

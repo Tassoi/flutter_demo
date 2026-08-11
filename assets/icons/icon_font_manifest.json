@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "fontFamily": "TemplateIcons",
+  "fontAsset": "assets/fonts/template_icons.otf",
+  "dartOutput": "lib/shared/assets/generated/template_icons.g.dart",
+  "licenseFile": "assets/icons/LICENSE.md",
+  "nextCodepoint": "0xE002",
+  "licenses": {
+    "template-original": {
+      "spdx": "MIT",
+      "source": "Flutter Template original neutral icons"
+    }
+  },
+  "glyphs": [
+    {
+      "name": "language",
+      "codepoint": "0xE000",
+      "status": "active",
+      "description": "表示语言选择或本地化设置的图标。",
+      "licenseId": "template-original",
+      "matchTextDirection": false,
+      "svg": "svg/language.svg"
+    },
+    {
+      "name": "check",
+      "codepoint": "0xE001",
+      "status": "active",
+      "description": "表示操作成功或选项已确认的图标。",
+      "licenseId": "template-original",
+      "matchTextDirection": false,
+      "svg": "svg/check.svg"
+    }
+  ]
+}

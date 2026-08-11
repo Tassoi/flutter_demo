@@ -7,10 +7,19 @@ import 'package:flutter_template/app/bootstrap/startup_error_reporter.dart';
 import 'package:flutter_template/app/bootstrap/startup_failure_app.dart';
 import 'package:flutter_template/app/config/app_config.dart';
 import 'package:flutter_template/app/config/app_environment.dart';
+import 'package:flutter_template/app/localization/app_locale.dart';
+import 'package:flutter_template/app/localization/app_locale_persistence.dart';
+import 'package:flutter_template/app/state/app_locale_controller.dart';
 import 'package:flutter_template/app/state/app_state_scope.dart';
 import 'package:flutter_template/app/template_app.dart';
 import 'package:flutter_template/core/logging/console_log_sink.dart';
 import 'package:flutter_template/core/logging/package_logging_app_logger.dart';
+import 'package:flutter_template/core/storage/flutter_secure_value_store.dart';
+import 'package:flutter_template/core/storage/shared_preferences_preference_store.dart';
+import 'package:flutter_template/features/auth/data/auth_credential_persistence.dart';
+import 'package:flutter_template/features/auth/data/secure_auth_credential_persistence.dart';
+import 'package:flutter_template/features/auth/data/unconfigured_auth_gateway.dart';
+import 'package:flutter_template/features/auth/presentation/auth_session_controller.dart';
 import 'package:flutter_template/features/example/data/bundled_example_repository.dart';
 import 'package:flutter_template/features/example/presentation/example_detail_controller.dart';
 
@@ -180,7 +189,7 @@ Future<Widget> _assembleProductionApplication({
   required AppConfig config,
   required DeferredStartupErrorReporter startupReporter,
   required StartupErrorReporter fallbackReporter,
-}) {
+}) async {
   final retainsDiagnosticDetails = config.environment != AppEnvironment.prod;
   final logger = PackageLoggingAppLogger(
     category: 'app',
@@ -199,6 +208,57 @@ Future<Widget> _assembleProductionApplication({
       fallbackReporter: fallbackReporter,
     ),
   );
+
+  AppLocalePreference initialLocalePreference = AppLocalePreference.system;
+  AppLocalePreferencePersistence? localePreferencePersistence;
+  try {
+    localePreferencePersistence = PreferenceStoreAppLocalePersistence(
+      SharedPreferencesPreferenceStore(),
+    );
+    try {
+      initialLocalePreference = await localePreferencePersistence.load();
+    } on Object catch (error, stackTrace) {
+      // 语言偏好是可恢复的普通设置，读取失败不能阻止应用启动。保留已经创建的写入边界，
+      // 让用户之后的显式选择有机会修复平台值；日志只使用固定事件和脱敏错误通道。
+      logger.log(
+        AppLogLevel.warning,
+        event: 'startup.locale_preference_unavailable',
+        message: 'Locale preference is unavailable; following system locale.',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  } on Object catch (error, stackTrace) {
+    // adapter 同步构造失败时没有可恢复的存储实例。应用仍按系统语言运行，并注入明确失败
+    // 的写入边界；后续选择会回滚并提示，不能把只在内存生效的结果伪装为已经持久化。
+    logger.log(
+      AppLogLevel.warning,
+      event: 'startup.locale_storage_unavailable',
+      message: 'Locale storage is unavailable; following system locale.',
+      error: error,
+      stackTrace: stackTrace,
+    );
+    localePreferencePersistence =
+        const UnavailableAppLocalePreferencePersistence();
+  }
+
+  AuthCredentialPersistence authCredentialPersistence;
+  try {
+    authCredentialPersistence = SecureAuthCredentialPersistence(
+      FlutterSecureValueStore(),
+    );
+  } on Object catch (error, stackTrace) {
+    // 认证是可裁剪增强能力，安全存储同步构造失败不能阻止公开首页启动。使用明确未配置边界
+    // 让恢复按无会话处理、任何登录保存都失败关闭；绝不降级到普通偏好或仅内存凭据。
+    logger.log(
+      AppLogLevel.warning,
+      event: 'startup.auth_storage_unavailable',
+      message: 'Authentication secure storage is unavailable.',
+      error: error,
+      stackTrace: stackTrace,
+    );
+    authCredentialPersistence = const UnconfiguredAuthCredentialPersistence();
+  }
   logger.log(
     AppLogLevel.info,
     event: 'startup.dependencies_ready',
@@ -214,15 +274,23 @@ Future<Widget> _assembleProductionApplication({
   // Feature 的 domain/presentation 不接触 Dio 或客户端生命周期。
   final exampleRepository = BundledExampleRepository();
 
-  // 当前没有其他插件服务需要等待，仍返回真实 Future 以维持 Task 4 已验证的异步边界。
-  // Provider 容器只在配置和异常边界就绪后创建；根 Widget 销毁时由 AppStateScope 统一
-  // 释放状态，不能使用进程级全局容器绕过 Widget 生命周期。
-  return Future<Widget>.value(
-    AppStateScope(
-      overrides: [
-        exampleRepositoryProvider.overrideWithValue(exampleRepository),
-      ],
-      child: TemplateApp(config: config),
-    ),
+  // Provider 容器只在配置、异常边界和可恢复偏好读取完成后创建；根 Widget 销毁时由
+  // AppStateScope 统一释放状态，不能使用进程级全局容器绕过 Widget 生命周期。
+  return AppStateScope(
+    overrides: [
+      exampleRepositoryProvider.overrideWithValue(exampleRepository),
+      appInitialLocalePreferenceProvider.overrideWithValue(
+        initialLocalePreference,
+      ),
+      appLocalePreferencePersistenceProvider.overrideWithValue(
+        localePreferencePersistence,
+      ),
+      authGatewayProvider.overrideWithValue(const UnconfiguredAuthGateway()),
+      authCredentialPersistenceProvider.overrideWithValue(
+        authCredentialPersistence,
+      ),
+      authLoggerProvider.overrideWithValue(logger),
+    ],
+    child: TemplateApp(config: config),
   );
 }

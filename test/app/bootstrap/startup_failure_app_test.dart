@@ -21,9 +21,9 @@ void main() {
       expect(materialApp.themeMode, ThemeMode.system);
       expect(materialApp.theme?.useMaterial3, isTrue);
       expect(materialApp.darkTheme?.useMaterial3, isTrue);
-      expect(find.text(StartupFailureApp.message), findsOneWidget);
+      expect(find.text('The application could not start.'), findsOneWidget);
       expect(
-        find.bySemanticsLabel(StartupFailureApp.semanticsLabel),
+        find.bySemanticsLabel('Application startup failed'),
         findsOneWidget,
       );
       expect(find.textContaining('FormatException'), findsNothing);
@@ -32,5 +32,20 @@ void main() {
     } finally {
       semantics.dispose();
     }
+  });
+
+  testWidgets('follows a supported Chinese system locale', (tester) async {
+    tester.platformDispatcher.localesTestValue = const <Locale>[Locale('zh')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
+    await pumpTestWidget(
+      tester,
+      const StartupFailureApp(),
+      surfaceSize: narrowPhoneSurfaceSize,
+    );
+
+    expect(find.text('应用无法启动。'), findsOneWidget);
+    expect(find.bySemanticsLabel('应用启动失败'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

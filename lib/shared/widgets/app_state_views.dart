@@ -2,10 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_template/shared/design/app_layout_tokens.dart';
+import 'package:flutter_template/shared/layout/app_screen_adaptation.dart';
 
 const _statusContentMaxWidth = 480.0;
 const _statusActionMaxWidth = 320.0;
-const _minimumActionHeight = 48.0;
 const _statusIconSize = 48.0;
 
 /// 展示正在进行且尚无可交互结果的加载状态。
@@ -18,19 +18,18 @@ const _statusIconSize = 48.0;
 /// 只控制组件内部留白，页面级 SafeArea 仍由调用方负责。
 final class AppLoadingState extends StatelessWidget {
   /// 创建具有稳定进度指示器尺寸的加载状态。
-  AppLoadingState({
-    required this.message,
-    this.padding = const EdgeInsets.all(AppSpacing.lg),
-    super.key,
-  }) {
+  AppLoadingState({required this.message, this.padding, super.key}) {
     _requireNonBlank(message, 'message');
   }
 
   /// 面向用户且可供辅助技术播报的加载说明。
   final String message;
 
-  /// 状态内容与可用边界之间的留白。
-  final EdgeInsetsGeometry padding;
+  /// 状态内容与可用边界之间的可选实际逻辑留白。
+  ///
+  /// 省略时使用按当前宽度换算的 `AppSpacing.lg`；调用方提供时应先通过 `du` 构造，且解析后
+  /// 每条边都必须有限且非负。系统 SafeArea 或键盘 Insets 不得放入本参数。
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -42,15 +41,15 @@ final class AppLoadingState extends StatelessWidget {
       label: message,
       child: ExcludeSemantics(
         child: _AppStateViewport(
-          padding: padding,
+          padding: padding ?? EdgeInsets.all(context.du(AppSpacing.lg)),
           child: _AppStateContent(
             visual: SizedBox.square(
-              dimension: AppSpacing.xxxl,
+              dimension: context.du(AppSpacing.xxxl),
               child: Center(
                 child: SizedBox.square(
-                  dimension: AppSpacing.xl,
+                  dimension: context.du(AppSpacing.xl),
                   child: CircularProgressIndicator(
-                    strokeWidth: 3,
+                    strokeWidth: context.du(3),
                     color: theme.colorScheme.primary,
                   ),
                 ),
@@ -76,7 +75,7 @@ final class AppEmptyState extends StatelessWidget {
     this.message,
     this.action,
     this.decoration,
-    this.padding = const EdgeInsets.all(AppSpacing.lg),
+    this.padding,
     super.key,
   }) {
     _requireNonBlank(title, 'title');
@@ -97,8 +96,11 @@ final class AppEmptyState extends StatelessWidget {
   /// 可选的纯装饰 Widget；省略时使用中立的收件箱图标。
   final Widget? decoration;
 
-  /// 状态内容与可用边界之间的留白。
-  final EdgeInsetsGeometry padding;
+  /// 状态内容与可用边界之间的可选实际逻辑留白。
+  ///
+  /// 省略时使用按当前宽度换算的 `AppSpacing.lg`；调用方提供时应先通过 `du` 构造，且不得
+  /// 混入系统 Insets。
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +111,7 @@ final class AppEmptyState extends StatelessWidget {
       explicitChildNodes: true,
       liveRegion: true,
       child: _AppStateViewport(
-        padding: padding,
+        padding: padding ?? EdgeInsets.all(context.du(AppSpacing.lg)),
         child: _AppStateContent(
           visual: _StateDecoration(
             color: theme.colorScheme.onSurfaceVariant,
@@ -139,7 +141,7 @@ final class AppErrorState extends StatelessWidget {
     this.retryLabel,
     this.onRetry,
     this.decoration,
-    this.padding = const EdgeInsets.all(AppSpacing.lg),
+    this.padding,
     super.key,
   }) {
     _requireNonBlank(title, 'title');
@@ -167,8 +169,11 @@ final class AppErrorState extends StatelessWidget {
   /// 可选的纯装饰 Widget；省略时使用中立错误图标。
   final Widget? decoration;
 
-  /// 状态内容与可用边界之间的留白。
-  final EdgeInsetsGeometry padding;
+  /// 状态内容与可用边界之间的可选实际逻辑留白。
+  ///
+  /// 省略时使用按当前宽度换算的 `AppSpacing.lg`；调用方提供时应先通过 `du` 构造，且不得
+  /// 混入系统 Insets。
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +185,7 @@ final class AppErrorState extends StatelessWidget {
       explicitChildNodes: true,
       liveRegion: true,
       child: _AppStateViewport(
-        padding: padding,
+        padding: padding ?? EdgeInsets.all(context.du(AppSpacing.lg)),
         child: _AppStateContent(
           visual: _StateDecoration(
             color: theme.colorScheme.error,
@@ -218,9 +223,18 @@ final class _AppStateViewport extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final resolvedPadding = padding.resolve(Directionality.of(context));
+        if (!_isFiniteNonNegative(resolvedPadding)) {
+          throw ArgumentError.value(
+            padding,
+            'padding',
+            'State padding must resolve to finite non-negative values.',
+          );
+        }
         final content = Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _statusContentMaxWidth),
+            constraints: BoxConstraints(
+              maxWidth: context.du(_statusContentMaxWidth),
+            ),
             child: child,
           ),
         );
@@ -269,7 +283,7 @@ final class _AppStateContent extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         visual,
-        const SizedBox(height: AppSpacing.md),
+        SizedBox(height: context.du(AppSpacing.md)),
         if (title != null)
           Text(
             title!,
@@ -278,7 +292,7 @@ final class _AppStateContent extends StatelessWidget {
             style: textTheme.titleLarge,
           ),
         if (title != null && message != null)
-          const SizedBox(height: AppSpacing.xs),
+          SizedBox(height: context.du(AppSpacing.xs)),
         if (message != null)
           Text(
             message!,
@@ -287,11 +301,11 @@ final class _AppStateContent extends StatelessWidget {
             style: title == null ? textTheme.bodyLarge : textTheme.bodyMedium,
           ),
         if (action != null) ...<Widget>[
-          const SizedBox(height: AppSpacing.lg),
+          SizedBox(height: context.du(AppSpacing.lg)),
           ConstrainedBox(
-            constraints: const BoxConstraints(
-              minHeight: _minimumActionHeight,
-              maxWidth: _statusActionMaxWidth,
+            constraints: BoxConstraints(
+              minHeight: AppDimensions.minimumTouchTarget(context),
+              maxWidth: context.du(_statusActionMaxWidth),
             ),
             child: action,
           ),
@@ -316,11 +330,15 @@ final class _StateDecoration extends StatelessWidget {
   Widget build(BuildContext context) {
     return ExcludeSemantics(
       child: SizedBox.square(
-        dimension: AppSpacing.xxxl,
+        dimension: context.du(AppSpacing.xxxl),
         child: Center(
           child:
               decoration ??
-              Icon(fallbackIcon, size: _statusIconSize, color: color),
+              Icon(
+                fallbackIcon,
+                size: context.du(_statusIconSize),
+                color: color,
+              ),
         ),
       ),
     );
@@ -331,4 +349,15 @@ void _requireNonBlank(String value, String argumentName) {
   if (value.trim().isEmpty) {
     throw ArgumentError('$argumentName must contain readable text.');
   }
+}
+
+bool _isFiniteNonNegative(EdgeInsets value) {
+  return value.left.isFinite &&
+      value.top.isFinite &&
+      value.right.isFinite &&
+      value.bottom.isFinite &&
+      value.left >= 0 &&
+      value.top >= 0 &&
+      value.right >= 0 &&
+      value.bottom >= 0;
 }

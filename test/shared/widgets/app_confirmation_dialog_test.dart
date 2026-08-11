@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_template/app/theme/app_theme.dart';
+import 'package:flutter_template/shared/layout/app_screen_adaptation.dart';
 import 'package:flutter_template/shared/widgets/app_confirmation_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -11,7 +12,8 @@ void main() {
     (tester) async {
       bool? result;
 
-      await tester.pumpWidget(
+      await pumpTestWidget(
+        tester,
         _dialogHost(
           onPressed: (context) async {
             result = await showAppConfirmationDialog(
@@ -24,6 +26,7 @@ void main() {
             );
           },
         ),
+        surfaceSize: referencePhoneSurfaceSize,
       );
 
       await tester.tap(find.text('Open dialog'));
@@ -96,7 +99,8 @@ void main() {
     tester,
   ) async {
     bool? result;
-    await tester.pumpWidget(
+    await pumpTestWidget(
+      tester,
       _dialogHost(
         onPressed: (context) async {
           result = await showAppConfirmationDialog(
@@ -108,6 +112,7 @@ void main() {
           );
         },
       ),
+      surfaceSize: referencePhoneSurfaceSize,
     );
 
     await tester.tap(find.text('Open dialog'));
@@ -136,7 +141,8 @@ void main() {
     tester,
   ) async {
     bool? result;
-    await tester.pumpWidget(
+    await pumpTestWidget(
+      tester,
       _dialogHost(
         onPressed: (context) async {
           result = await showAppConfirmationDialog(
@@ -148,6 +154,7 @@ void main() {
           );
         },
       ),
+      surfaceSize: referencePhoneSurfaceSize,
     );
 
     await tester.tap(find.text('Open dialog'));
@@ -212,7 +219,11 @@ void main() {
   testWidgets('confirmation dialog rejects blank labels before navigation', (
     tester,
   ) async {
-    await tester.pumpWidget(_dialogHost(onPressed: (_) {}));
+    await pumpTestWidget(
+      tester,
+      _dialogHost(onPressed: (_) {}),
+      surfaceSize: referencePhoneSurfaceSize,
+    );
     final context = tester.element(find.byKey(const Key('dialog-host')));
 
     await expectLater(
@@ -233,21 +244,24 @@ Widget _dialogHost({
   required DialogLauncher onPressed,
   TextScaler textScaler = TextScaler.noScaling,
 }) {
-  return MaterialApp(
-    theme: AppTheme.light(),
-    builder: createTestMediaQueryBuilder(textScaler: textScaler),
-    home: Builder(
-      key: const Key('dialog-host'),
-      builder:
-          (context) => Scaffold(
-            body: Center(
-              child: FilledButton(
-                onPressed: () => onPressed(context),
-                child: const Text('Open dialog'),
-              ),
-            ),
+  return AppScreenAdaptation(
+    builder:
+        (adaptedContext) => MaterialApp(
+          theme: AppTheme.light(adaptedContext),
+          builder: createTestMediaQueryBuilder(textScaler: textScaler),
+          home: Builder(
+            key: const Key('dialog-host'),
+            builder:
+                (context) => Scaffold(
+                  body: Center(
+                    child: FilledButton(
+                      onPressed: () => onPressed(context),
+                      child: const Text('Open dialog'),
+                    ),
+                  ),
+                ),
           ),
-    ),
+        ),
   );
 }
 

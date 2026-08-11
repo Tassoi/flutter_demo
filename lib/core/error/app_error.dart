@@ -14,8 +14,8 @@ sealed class AppError implements Exception {
 
   /// 可以直接交给通用错误 UI 的非敏感兜底文案。
   ///
-  /// 当前第一阶段不包含国际化，因此使用固定英文文案；第二阶段接入国际化时应通过
-  /// [code] 映射本地化资源，而不是把底层异常文本当作文案。
+  /// 该字段保留固定英文作为无本地化上下文时的最后安全兜底。正常 Widget UI 必须通过
+  /// [code] 映射当前语言资源，而不是直接展示本字段或把底层异常文本当作文案。
   final String displayMessage;
 
   @override

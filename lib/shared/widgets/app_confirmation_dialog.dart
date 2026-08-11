@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_template/shared/design/app_layout_tokens.dart';
+import 'package:flutter_template/shared/layout/app_screen_adaptation.dart';
 
 /// 展示需要用户明确确认或取消的 Material 对话框。
 ///
@@ -55,8 +56,13 @@ Future<bool> showAppConfirmationDialog(
       return AlertDialog(
         semanticLabel: title,
         scrollable: true,
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: dialogContext.du(AppSpacing.xl),
+          vertical: dialogContext.du(AppSpacing.lg),
+        ),
         icon: Icon(
           isDestructive ? Icons.warning_amber_rounded : Icons.help_outline,
+          size: dialogContext.du(AppSpacing.lg),
         ),
         iconColor:
             isDestructive ? colorScheme.error : colorScheme.onSurfaceVariant,
@@ -66,13 +72,13 @@ Future<bool> showAppConfirmationDialog(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Text(message),
-            const SizedBox(height: AppSpacing.lg),
+            SizedBox(height: dialogContext.du(AppSpacing.lg)),
             // AlertDialog 的独立 actions 区不会随标题和正文滚动，较大系统文字可能把
             // 两个长标签挤出短屏。把动作放入同一个可滚动区域，并让每个按钮获得
             // 有界宽度，既保留完整文案，也不通过缩小文字规避布局问题。
             OverflowBar(
-              spacing: AppSpacing.xs,
-              overflowSpacing: AppSpacing.xs,
+              spacing: dialogContext.du(AppSpacing.xs),
+              overflowSpacing: dialogContext.du(AppSpacing.xs),
               overflowAlignment: OverflowBarAlignment.end,
               overflowDirection: VerticalDirection.down,
               children: <Widget>[
@@ -119,20 +125,29 @@ final class _DialogActionButton extends StatelessWidget {
     final content = Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
-        Icon(icon),
-        const SizedBox(width: AppSpacing.xs),
+        Icon(icon, size: context.du(AppSpacing.lg)),
+        SizedBox(width: context.du(AppSpacing.xs)),
         Flexible(
           child: Text(label, textAlign: TextAlign.center, softWrap: true),
         ),
       ],
     );
 
-    return SizedBox(
-      width: double.infinity,
-      child:
-          filled
-              ? FilledButton(style: style, onPressed: onPressed, child: content)
-              : TextButton(onPressed: onPressed, child: content),
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minHeight: AppDimensions.minimumTouchTarget(context),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child:
+            filled
+                ? FilledButton(
+                  style: style,
+                  onPressed: onPressed,
+                  child: content,
+                )
+                : TextButton(onPressed: onPressed, child: content),
+      ),
     );
   }
 }

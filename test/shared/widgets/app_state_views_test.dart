@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_template/app/theme/app_theme.dart';
+import 'package:flutter_template/shared/layout/app_screen_adaptation.dart';
 import 'package:flutter_template/shared/widgets/app_state_views.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -12,8 +13,10 @@ void main() {
     final semantics = tester.ensureSemantics();
 
     try {
-      await tester.pumpWidget(
+      await pumpTestWidget(
+        tester,
         _testApp(AppLoadingState(message: 'Loading records')),
+        surfaceSize: referencePhoneSurfaceSize,
       );
 
       final indicator = find.byType(CircularProgressIndicator);
@@ -32,7 +35,8 @@ void main() {
   ) async {
     var actionCount = 0;
 
-    await tester.pumpWidget(
+    await pumpTestWidget(
+      tester,
       _testApp(
         AppEmptyState(
           title: 'No records',
@@ -43,6 +47,7 @@ void main() {
           ),
         ),
       ),
+      surfaceSize: referencePhoneSurfaceSize,
     );
 
     expect(find.byIcon(Icons.inbox_outlined), findsOneWidget);
@@ -65,7 +70,8 @@ void main() {
     final semantics = tester.ensureSemantics();
 
     try {
-      await tester.pumpWidget(
+      await pumpTestWidget(
+        tester,
         _testApp(
           AppErrorState(
             title: 'Could not load records',
@@ -74,6 +80,7 @@ void main() {
             onRetry: () => retryCount += 1,
           ),
         ),
+        surfaceSize: referencePhoneSurfaceSize,
       );
 
       expect(find.byIcon(Icons.error_outline), findsOneWidget);
@@ -117,6 +124,21 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('state views reject invalid custom padding', (tester) async {
+    await pumpTestWidget(
+      tester,
+      _testApp(
+        AppLoadingState(
+          message: 'Loading',
+          padding: const EdgeInsets.only(left: -1),
+        ),
+      ),
+      surfaceSize: referencePhoneSurfaceSize,
+    );
+
+    expect(tester.takeException(), isA<ArgumentError>());
+  });
+
   test(
     'state views reject blank accessible copy and incomplete retry data',
     () {
@@ -138,9 +160,12 @@ void main() {
 }
 
 Widget _testApp(Widget child, {TextScaler textScaler = TextScaler.noScaling}) {
-  return MaterialApp(
-    theme: AppTheme.light(),
-    builder: createTestMediaQueryBuilder(textScaler: textScaler),
-    home: Scaffold(body: child),
+  return AppScreenAdaptation(
+    builder:
+        (adaptedContext) => MaterialApp(
+          theme: AppTheme.light(adaptedContext),
+          builder: createTestMediaQueryBuilder(textScaler: textScaler),
+          home: Scaffold(body: child),
+        ),
   );
 }

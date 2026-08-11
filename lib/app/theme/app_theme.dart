@@ -1,35 +1,82 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_template/app/theme/app_typography.dart';
 import 'package:flutter_template/shared/design/app_layout_tokens.dart';
+import 'package:flutter_template/shared/layout/app_screen_adaptation.dart';
 
 /// 应用 Material 3 亮暗主题的唯一组装入口。
 ///
 /// 颜色、排版和常用组件外观在此集中组合。Feature 应通过 [Theme.of] 和项目布局 token
 /// 获取语义值，不应导入私有色板或复制颜色常量。[light] 与 [dark] 每次返回独立
-/// [ThemeData]，不读取环境、平台存储或全局可变状态，因此正常应用和启动失败 fallback
-/// 都可以安全使用。
+/// [ThemeData]，不读取环境、平台存储或全局可变状态。正常应用必须从适配根下的 context
+/// 创建主题；启动失败页使用明确的 fallback 入口，不把插件初始化变成安全回退的前置条件。
 abstract final class AppTheme {
-  /// 创建亮色 Material 3 主题。
-  static ThemeData light() => _build(_lightColorScheme);
+  /// 在项目设计单位已经初始化后创建亮色 Material 3 主题。
+  static ThemeData light(BuildContext context) => _build(
+    colorScheme: _lightColorScheme,
+    designUnit: (value) => context.du(value),
+    textTheme: AppTypography.textTheme(context, _lightColorScheme),
+  );
 
-  /// 创建暗色 Material 3 主题。
-  static ThemeData dark() => _build(_darkColorScheme);
+  /// 在项目设计单位已经初始化后创建暗色 Material 3 主题。
+  static ThemeData dark(BuildContext context) => _build(
+    colorScheme: _darkColorScheme,
+    designUnit: (value) => context.du(value),
+    textTheme: AppTypography.textTheme(context, _darkColorScheme),
+  );
 
-  static ThemeData _build(ColorScheme colorScheme) {
-    final standardShape = RoundedRectangleBorder(
-      borderRadius: AppRadii.mediumBorderRadius,
+  /// 创建不依赖适配器、资源或其他启动结果的亮色安全 fallback 主题。
+  static ThemeData fallbackLight() => _build(
+    colorScheme: _lightColorScheme,
+    designUnit: _identityDesignUnit,
+    textTheme: AppTypography.fallbackTextTheme(_lightColorScheme),
+  );
+
+  /// 创建不依赖适配器、资源或其他启动结果的暗色安全 fallback 主题。
+  static ThemeData fallbackDark() => _build(
+    colorScheme: _darkColorScheme,
+    designUnit: _identityDesignUnit,
+    textTheme: AppTypography.fallbackTextTheme(_darkColorScheme),
+  );
+
+  static ThemeData _build({
+    required ColorScheme colorScheme,
+    required double Function(num value) designUnit,
+    required TextTheme textTheme,
+  }) {
+    final mediumRadius = BorderRadius.all(
+      Radius.circular(designUnit(AppRadii.medium)),
     );
+    final standardShape = RoundedRectangleBorder(borderRadius: mediumRadius);
     final inputBorder = OutlineInputBorder(
-      borderRadius: AppRadii.mediumBorderRadius,
-      borderSide: BorderSide(color: colorScheme.outline),
+      borderRadius: mediumRadius,
+      borderSide: BorderSide(color: colorScheme.outline, width: designUnit(1)),
+    );
+    final minimumTouchTarget = math.max(48.0, designUnit(48));
+    final sharedButtonStyle = ButtonStyle(
+      minimumSize: WidgetStatePropertyAll(
+        Size(designUnit(AppSpacing.xxxl), minimumTouchTarget),
+      ),
+      padding: WidgetStatePropertyAll(
+        EdgeInsets.symmetric(
+          horizontal: designUnit(AppSpacing.lg),
+          vertical: designUnit(AppSpacing.sm),
+        ),
+      ),
+      shape: WidgetStatePropertyAll(standardShape),
+      iconSize: WidgetStatePropertyAll(designUnit(20)),
     );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: colorScheme.surface,
-      textTheme: AppTypography.textTheme(colorScheme),
-      iconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
+      textTheme: textTheme,
+      iconTheme: IconThemeData(
+        color: colorScheme.onSurfaceVariant,
+        size: designUnit(AppSpacing.lg),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: colorScheme.surface,
         foregroundColor: colorScheme.onSurface,
@@ -54,26 +101,44 @@ abstract final class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: colorScheme.surfaceContainerLow,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: designUnit(AppSpacing.md),
+          vertical: designUnit(AppSpacing.sm),
         ),
         border: inputBorder,
         enabledBorder: inputBorder,
         focusedBorder: inputBorder.copyWith(
-          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+          borderSide: BorderSide(
+            color: colorScheme.primary,
+            width: designUnit(2),
+          ),
         ),
         errorBorder: inputBorder.copyWith(
           borderSide: BorderSide(color: colorScheme.error),
         ),
         focusedErrorBorder: inputBorder.copyWith(
-          borderSide: BorderSide(color: colorScheme.error, width: 2),
+          borderSide: BorderSide(
+            color: colorScheme.error,
+            width: designUnit(2),
+          ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(style: sharedButtonStyle),
+      outlinedButtonTheme: OutlinedButtonThemeData(style: sharedButtonStyle),
+      textButtonTheme: TextButtonThemeData(style: sharedButtonStyle),
+      iconButtonTheme: IconButtonThemeData(
+        style: ButtonStyle(
+          minimumSize: WidgetStatePropertyAll(Size.square(minimumTouchTarget)),
+          padding: WidgetStatePropertyAll(
+            EdgeInsets.all(designUnit(AppSpacing.xs)),
+          ),
+          iconSize: WidgetStatePropertyAll(designUnit(AppSpacing.lg)),
         ),
       ),
       dividerTheme: DividerThemeData(
         color: colorScheme.outlineVariant,
-        thickness: 1,
-        space: AppSpacing.md,
+        thickness: designUnit(1),
+        space: designUnit(AppSpacing.md),
       ),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: colorScheme.primary,
@@ -83,6 +148,8 @@ abstract final class AppTheme {
     );
   }
 }
+
+double _identityDesignUnit(num value) => value.toDouble();
 
 // 模板色板刻意组合青绿、暖红与蓝色语义角色，避免默认界面退化成单一色相。
 const _lightColorScheme = ColorScheme(

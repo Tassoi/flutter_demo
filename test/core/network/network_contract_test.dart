@@ -203,6 +203,32 @@ void main() {
         'DELETE',
       ]);
     });
+
+    test('keeps replay opt-in explicit and safe by default', () {
+      final defaultRequest = NetworkRequest(
+        operation: 'catalog.load_items',
+        method: NetworkMethod.get,
+        path: 'items',
+      );
+      final idempotentRequest = NetworkRequest(
+        operation: 'catalog.replace_items',
+        method: NetworkMethod.put,
+        path: 'items',
+        body: <String, Object?>{'fixture': true},
+        replayPolicy: NetworkRequestReplayPolicy.explicitlyIdempotent,
+      );
+
+      expect(
+        defaultRequest.replayPolicy,
+        NetworkRequestReplayPolicy.safeMethodOnly,
+      );
+      expect(
+        idempotentRequest.replayPolicy,
+        NetworkRequestReplayPolicy.explicitlyIdempotent,
+      );
+      expect(defaultRequest.toString(), contains('safeMethodOnly'));
+      expect(idempotentRequest.toString(), contains('explicitlyIdempotent'));
+    });
   });
 
   group('NetworkCredential', () {

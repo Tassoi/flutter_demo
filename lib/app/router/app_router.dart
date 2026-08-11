@@ -1,9 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_template/app/localization/app_locale.dart';
+import 'package:flutter_template/app/localization/app_localizations.dart';
 import 'package:flutter_template/app/router/app_route_redirect_policy.dart';
+import 'package:flutter_template/app/state/app_locale_controller.dart';
+import 'package:flutter_template/features/auth/domain/auth_failure.dart';
+import 'package:flutter_template/features/auth/presentation/auth_account_page.dart';
+import 'package:flutter_template/features/auth/presentation/auth_sign_in_page.dart';
+import 'package:flutter_template/features/auth/routing/auth_route_contract.dart';
+import 'package:flutter_template/features/example/presentation/example_detail_copy.dart';
 import 'package:flutter_template/features/example/presentation/example_detail_page.dart';
 import 'package:flutter_template/features/example/routing/example_route_contract.dart';
 import 'package:flutter_template/shared/assets/app_assets.dart';
+import 'package:flutter_template/shared/assets/generated/template_icons.g.dart';
 import 'package:flutter_template/shared/design/app_layout_tokens.dart';
+import 'package:flutter_template/shared/layout/app_safe_scrollable_scaffold.dart';
+import 'package:flutter_template/shared/layout/app_screen_adaptation.dart';
+import 'package:flutter_template/shared/widgets/app_message_feedback.dart';
+import 'package:flutter_template/shared/widgets/app_state_views.dart';
 import 'package:go_router/go_router.dart';
 
 /// 应用唯一的声明式路由组装与生命周期边界。
@@ -20,11 +36,13 @@ final class AppRouter {
   ///
   /// [appName] 只用于首页展示且不得为空白。[redirectPolicy] 默认完全放行，不包含认证
   /// 业务。构造过程没有网络、存储或平台 I/O；路由配置错误属于开发期缺陷，应由本文件
-  /// 的测试和静态分析阻止发布。
+  /// 的测试和静态分析阻止发布。[refreshListenable] 只通知 go_router 重新调用同步策略，
+  /// 不由 Router 处置，也不得拥有认证状态或启动异步工作。
   factory AppRouter({
     required String appName,
     AppRouteRedirectPolicy redirectPolicy =
         const AllowAllAppRouteRedirectPolicy(),
+    Listenable? refreshListenable,
   }) {
     if (appName.trim().isEmpty) {
       throw ArgumentError('App name must contain readable text.');
@@ -39,17 +57,26 @@ final class AppRouter {
 
     final router = GoRouter(
       navigatorKey: rootNavigatorKey,
+      refreshListenable: refreshListenable,
       redirect:
           (_, state) =>
               _resolveRedirect(policy: redirectPolicy, currentUri: state.uri),
       errorBuilder: (_, _) {
         // go_router 的默认错误页会显示异常文本，其中可能包含外部深链或策略异常详情。
         // 统一替换为固定状态，原始 URI、query 和 error 对象都不跨入 Widget 类型边界。
-        return const Scaffold(
-          body: _RouteProblemView(kind: _RouteProblemKind.unknown),
-        );
+        return const _RouteProblemView(kind: _RouteProblemKind.unknown);
       },
       routes: <RouteBase>[
+        GoRoute(
+          path: AuthRouteContract.signInPath,
+          name: 'auth.signIn',
+          builder: (_, _) => const _AuthSignInRoute(),
+        ),
+        GoRoute(
+          path: AuthRouteContract.sessionLoadingPath,
+          name: 'auth.sessionLoading',
+          builder: (_, _) => const _AuthSessionLoadingRoute(),
+        ),
         ShellRoute(
           navigatorKey: shellNavigatorKey,
           builder:
@@ -78,6 +105,11 @@ final class AppRouter {
                     }
                     return _ExampleDetailRoute(itemId: itemId);
                   },
+                ),
+                GoRoute(
+                  path: AuthRouteContract.protectedPath,
+                  name: 'auth.account',
+                  builder: (_, _) => const _AuthAccountRoute(),
                 ),
               ],
             ),
@@ -156,54 +188,158 @@ final class _AppRouteShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: child);
+    // ShellRoute 只保留嵌套 Navigator 的所有权；每个页面自行拥有 Scaffold 和安全区，
+    // 避免页面接入统一安全滚动壳层后形成嵌套 Scaffold 或重复消费系统 Insets。
+    return child;
   }
 }
 
-final class _TemplateHomeRoute extends StatelessWidget {
+final class _TemplateHomeRoute extends ConsumerWidget {
   const _TemplateHomeRoute({required this.appName});
 
   final String appName;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final localizations = context.localizations;
+    final localePreference = ref.watch(appLocalePreferenceProvider);
 
-    return SafeArea(
+    return AppSafeScrollableScaffold(
       key: const Key('template-home-route'),
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              AppAssets.templateLayers.image(
-                key: const Key('template-app-symbol'),
-                width: AppSpacing.xxxl,
-                height: AppSpacing.xxxl,
-                color: theme.colorScheme.tertiary,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                appName,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.headlineSmall,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              FilledButton.icon(
-                key: const Key('open-example-detail'),
-                onPressed:
-                    () => context.go(
-                      ExampleRouteContract.detailLocation(1).toString(),
+      contentPadding: EdgeInsets.all(context.du(AppSpacing.lg)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: PopupMenuButton<AppLocalePreference>(
+              key: const Key('language-menu'),
+              tooltip: localizations.languageMenuTooltip,
+              initialValue: localePreference,
+              icon: const Icon(TemplateIcons.language),
+              onSelected: (preference) {
+                unawaited(_setLocale(context, ref, preference));
+              },
+              itemBuilder:
+                  (_) => _languageMenuItems(
+                    localizations: localizations,
+                    selected: localePreference,
+                  ),
+            ),
+          ),
+          SizedBox(height: context.du(AppSpacing.sm)),
+          Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: context.du(480)),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  AppAssets.templateLayers.image(
+                    key: const Key('template-app-symbol'),
+                    width: context.du(AppSpacing.xxxl),
+                    height: context.du(AppSpacing.xxxl),
+                    color: theme.colorScheme.tertiary,
+                  ),
+                  SizedBox(height: context.du(AppSpacing.md)),
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      appName,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.headlineSmall,
                     ),
-                icon: const Icon(Icons.open_in_new),
-                label: const Text('Open example detail'),
+                  ),
+                  SizedBox(height: context.du(AppSpacing.xs)),
+                  Text(
+                    localizations.exampleItemCount(count: 1),
+                    key: const Key('example-item-count'),
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  SizedBox(height: context.du(AppSpacing.lg)),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: AppDimensions.minimumTouchTarget(context),
+                      maxWidth: context.du(320),
+                    ),
+                    child: OutlinedButton.icon(
+                      key: const Key('open-protected-area'),
+                      onPressed:
+                          () => context.go(AuthRouteContract.protectedLocation),
+                      icon: const Icon(Icons.lock_outline),
+                      label: Text(localizations.openProtectedArea),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
+          ),
+        ],
+      ),
+      bottomAction: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: AppDimensions.minimumTouchTarget(context),
+            maxWidth: context.du(320),
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              key: const Key('open-example-detail'),
+              onPressed:
+                  () => context.go(
+                    ExampleRouteContract.detailLocation(1).toString(),
+                  ),
+              icon: const Icon(Icons.open_in_new),
+              label: Text(localizations.openExampleDetail),
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _setLocale(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalePreference preference,
+  ) async {
+    final bool saved = await ref
+        .read(appLocalePreferenceProvider.notifier)
+        .setPreference(preference);
+    if (saved || !context.mounted) {
+      return;
+    }
+    showAppMessageFeedback(
+      context,
+      message: context.localizations.languagePreferenceSaveFailed,
+      kind: AppMessageKind.error,
+    );
+  }
+
+  List<PopupMenuEntry<AppLocalePreference>> _languageMenuItems({
+    required AppLocalizations localizations,
+    required AppLocalePreference selected,
+  }) {
+    return <PopupMenuEntry<AppLocalePreference>>[
+      CheckedPopupMenuItem<AppLocalePreference>(
+        value: AppLocalePreference.system,
+        checked: selected == AppLocalePreference.system,
+        child: Text(localizations.languageFollowSystem),
+      ),
+      CheckedPopupMenuItem<AppLocalePreference>(
+        value: AppLocalePreference.english,
+        checked: selected == AppLocalePreference.english,
+        child: Text(localizations.languageEnglish),
+      ),
+      CheckedPopupMenuItem<AppLocalePreference>(
+        value: AppLocalePreference.chinese,
+        checked: selected == AppLocalePreference.chinese,
+        child: Text(localizations.languageChinese),
+      ),
+    ];
   }
 }
 
@@ -214,8 +350,22 @@ final class _ExampleDetailRoute extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = context.localizations;
     return ExampleDetailPage(
       itemId: itemId,
+      copy: ExampleDetailCopy(
+        loadingMessage: localizations.exampleDetailLoading,
+        errorTitle: localizations.exampleDetailErrorTitle,
+        retryLabel: localizations.tryAgain,
+        emptyTitle: localizations.exampleItemUnavailableTitle,
+        emptyMessage: localizations.exampleItemUnavailableMessage,
+        backToHomeLabel: localizations.backToHome,
+        backTooltip: localizations.back,
+        pageTitle: localizations.exampleDetailTitle,
+        errorMessage: (error) => localizeAppError(localizations, error),
+        itemIdentifier:
+            (itemId) => localizations.exampleItemIdentifier(itemId: itemId),
+      ),
       onBack: () {
         final router = GoRouter.of(context);
         if (router.canPop()) {
@@ -230,6 +380,78 @@ final class _ExampleDetailRoute extends StatelessWidget {
   }
 }
 
+final class _AuthSignInRoute extends StatelessWidget {
+  const _AuthSignInRoute();
+
+  @override
+  Widget build(BuildContext context) {
+    final localizations = context.localizations;
+    return AuthSignInPage(
+      copy: AuthSignInCopy(
+        pageTitle: localizations.authSignInTitle,
+        identifierLabel: localizations.authIdentifierLabel,
+        passwordLabel: localizations.authPasswordLabel,
+        identifierRequired: localizations.authIdentifierRequired,
+        passwordRequired: localizations.authPasswordRequired,
+        showPasswordTooltip: localizations.authShowPassword,
+        hidePasswordTooltip: localizations.authHidePassword,
+        submitLabel: localizations.authSubmitSignIn,
+        returnHomeLabel: localizations.returnHome,
+        failureMessage:
+            (failure) => _localizeAuthFailure(localizations, failure),
+      ),
+      onReturnHome: () => context.go('/'),
+    );
+  }
+}
+
+final class _AuthSessionLoadingRoute extends StatelessWidget {
+  const _AuthSessionLoadingRoute();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: AppLoadingState(
+          key: const Key('auth-session-loading-route'),
+          message: context.localizations.authSessionLoading,
+        ),
+      ),
+    );
+  }
+}
+
+final class _AuthAccountRoute extends StatelessWidget {
+  const _AuthAccountRoute();
+
+  @override
+  Widget build(BuildContext context) {
+    final localizations = context.localizations;
+    return AuthAccountPage(
+      copy: AuthAccountCopy(
+        pageTitle: localizations.authAccountTitle,
+        sessionActiveMessage: localizations.authSessionActive,
+        signOutLabel: localizations.authSignOut,
+        returnHomeLabel: localizations.returnHome,
+      ),
+      onReturnHome: () => context.go('/'),
+    );
+  }
+}
+
+String _localizeAuthFailure(
+  AppLocalizations localizations,
+  AuthFailure failure,
+) {
+  return switch (failure) {
+    AuthServiceUnavailableFailure() => localizations.authFailureUnavailable,
+    AuthSignInRejectedFailure() => localizations.authFailureRejected,
+    AuthSessionExpiredFailure() => localizations.authFailureSessionExpired,
+    AuthPersistenceFailure() => localizations.authFailurePersistence,
+    UnexpectedAuthFailure() => localizations.authFailureUnexpected,
+  };
+}
+
 enum _RouteProblemKind { invalidParameter, unknown }
 
 final class _RouteProblemView extends StatelessWidget {
@@ -241,67 +463,68 @@ final class _RouteProblemView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isInvalidParameter = kind == _RouteProblemKind.invalidParameter;
+    final localizations = context.localizations;
 
-    return SafeArea(
+    return AppSafeScrollableScaffold(
       key: const Key('app-route-problem'),
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                ExcludeSemantics(
-                  child: Icon(
-                    isInvalidParameter
-                        ? Icons.link_off_outlined
-                        : Icons.search_off_outlined,
-                    size: AppSpacing.xxl,
-                    color: theme.colorScheme.error,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Semantics(
-                  key: Key(
-                    isInvalidParameter
-                        ? 'invalid-route-parameter'
-                        : 'unknown-route',
-                  ),
-                  liveRegion: true,
-                  header: true,
-                  child: Text(
-                    isInvalidParameter
-                        ? 'Invalid example link'
-                        : 'Page not found',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineSmall,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
+      contentPadding: EdgeInsets.all(context.du(AppSpacing.lg)),
+      content: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: context.du(480)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ExcludeSemantics(
+                child: Icon(
                   isInvalidParameter
-                      ? 'This example item link cannot be opened.'
-                      : 'The requested page is unavailable.',
+                      ? Icons.link_off_outlined
+                      : Icons.search_off_outlined,
+                  size: context.du(AppSpacing.xxl),
+                  color: theme.colorScheme.error,
+                ),
+              ),
+              SizedBox(height: context.du(AppSpacing.md)),
+              Semantics(
+                key: Key(
+                  isInvalidParameter
+                      ? 'invalid-route-parameter'
+                      : 'unknown-route',
+                ),
+                liveRegion: true,
+                header: true,
+                child: Text(
+                  isInvalidParameter
+                      ? localizations.invalidExampleLinkTitle
+                      : localizations.pageNotFoundTitle,
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge,
+                  style: theme.textTheme.headlineSmall,
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minHeight: 48,
-                    maxWidth: 320,
-                  ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () => context.go('/'),
-                      icon: const Icon(Icons.home_outlined),
-                      label: const Text('Return home'),
-                    ),
-                  ),
-                ),
-              ],
+              ),
+              SizedBox(height: context.du(AppSpacing.sm)),
+              Text(
+                isInvalidParameter
+                    ? localizations.invalidExampleLinkMessage
+                    : localizations.pageNotFoundMessage,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge,
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomAction: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: AppDimensions.minimumTouchTarget(context),
+            maxWidth: context.du(320),
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              key: const Key('return-home'),
+              onPressed: () => context.go('/'),
+              icon: const Icon(Icons.home_outlined),
+              label: Text(localizations.returnHome),
             ),
           ),
         ),

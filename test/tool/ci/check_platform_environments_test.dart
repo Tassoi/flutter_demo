@@ -112,6 +112,53 @@ void main() {
       );
     });
 
+    test('rejects an iOS localization list that drifts from ARB resources', () {
+      final Map<String, String> files = _validFiles();
+      files['ios/Runner/Info.plist'] = files['ios/Runner/Info.plist']!
+          .replaceFirst('<string>zh</string>', '<string>fr</string>');
+
+      final List<String> violations = validatePlatformEnvironments(files);
+
+      expect(violations, contains(contains('[PLATFORM_IOS_LOCALIZATIONS]')));
+    });
+
+    test('rejects a Flutter icon font registration that drifts by family', () {
+      final Map<String, String> files = _validFiles();
+      files['pubspec.yaml'] = files['pubspec.yaml']!.replaceFirst(
+        'family: TemplateIcons',
+        'family: DriftedIcons',
+      );
+
+      final List<String> violations = validatePlatformEnvironments(files);
+
+      expect(violations, contains(contains('[PLATFORM_FLUTTER_ICON_FONT]')));
+    });
+
+    test(
+      'rejects Android or iOS branding references that stop being common',
+      () {
+        final Map<String, String> files = _validFiles();
+        files['android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'] =
+            files['android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml']!
+                .replaceFirst(
+                  '@drawable/ic_launcher_monochrome',
+                  '@drawable/dev_icon',
+                );
+        files['ios/Runner/Base.lproj/LaunchScreen.storyboard'] =
+            '<imageView image="EnvironmentLaunchImage" />';
+
+        final List<String> violations = validatePlatformEnvironments(files);
+
+        expect(
+          violations.map((String violation) => violation.split(' ').first),
+          containsAll(<String>{
+            '[PLATFORM_ANDROID_BRANDING]',
+            '[PLATFORM_IOS_BRANDING]',
+          }),
+        );
+      },
+    );
+
     test('rejects an environment-independent Android AAB entrypoint', () {
       final Map<String, String> files = _validFiles();
       files['android/app/build.gradle.kts'] =
@@ -170,6 +217,13 @@ tasks.matching { it.name in environmentlessBuildTasks }.configureEach {
 
 Map<String, String> _validFiles() {
   final Map<String, String> files = <String, String>{
+    'pubspec.yaml': '''
+flutter:
+  fonts:
+    - family: TemplateIcons
+      fonts:
+        - asset: assets/fonts/template_icons.otf
+''',
     'lib/app/config/app_config.dart': '''
 factory AppConfig.fromDartDefines({String? nativeFlavor = appFlavor}) {}
 if (nativeFlavor != environment.name) {}
@@ -197,11 +251,33 @@ AppEnvironment.prod => (
 <uses-permission android:name="android.permission.INTERNET" />
 <application
   android:label="@string/app_name"
+  android:icon="@mipmap/ic_launcher"
   android:allowBackup="false">
   <meta-data
     android:name="com.example.flutter_template.APP_ENV"
     android:value="@string/app_environment" />
 </application>
+''',
+    'android/app/src/main/res/drawable/launch_background.xml': '''
+<bitmap android:src="@drawable/background" />
+<bitmap android:src="@drawable/splash" />
+''',
+    'android/app/src/main/res/drawable-v21/launch_background.xml': '''
+<bitmap android:src="@drawable/background" />
+<bitmap android:src="@drawable/splash" />
+''',
+    'android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml': '''
+<background android:drawable="@drawable/ic_launcher_background" />
+<foreground android:drawable="@drawable/ic_launcher_foreground" />
+<monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+''',
+    'android/app/src/main/res/values-v31/styles.xml': '''
+<item name="android:windowSplashScreenBackground">@drawable/launch_background</item>
+<item name="android:windowSplashScreenAnimatedIcon">@drawable/android12splash</item>
+''',
+    'android/app/src/main/res/values-night-v31/styles.xml': '''
+<item name="android:windowSplashScreenBackground">@drawable/launch_background</item>
+<item name="android:windowSplashScreenAnimatedIcon">@drawable/android12splash</item>
 ''',
     'ios/Flutter/Debug.xcconfig': '''
 #include "Generated.xcconfig"
@@ -216,6 +292,23 @@ CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements
 <string>$(APP_DISPLAY_NAME)</string>
 <key>AppEnvironment</key>
 <string>$(APP_ENV)</string>
+<key>CFBundleLocalizations</key>
+<array>
+  <string>en</string>
+  <string>zh</string>
+</array>
+''',
+    'ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json':
+        '{"images":[{"filename":"Icon-App-1024x1024@1x.png"}]}',
+    'ios/Runner/Assets.xcassets/LaunchBackground.imageset/Contents.json':
+        '{"images":[{"filename":"background.png"}]}',
+    'ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json':
+        '{"images":[{"filename":"LaunchImage.png"},'
+        '{"filename":"LaunchImage@2x.png"},'
+        '{"filename":"LaunchImage@3x.png"}]}',
+    'ios/Runner/Base.lproj/LaunchScreen.storyboard': '''
+<imageView image="LaunchBackground" />
+<imageView image="LaunchImage" />
 ''',
     'ios/Runner/Runner.entitlements': '''
 <key>keychain-access-groups</key>
@@ -332,6 +425,7 @@ String _validXcodeProject() {
           definitions
             ..writeln('    APP_ENV = ${entry.key};')
             ..writeln('    APP_DISPLAY_NAME = "${entry.value.displayName}";')
+            ..writeln('    ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;')
             ..writeln('    INFOPLIST_FILE = Runner/Info.plist;')
             ..writeln(
               '    PRODUCT_BUNDLE_IDENTIFIER = '

@@ -1,20 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_template/shared/layout/app_screen_adaptation.dart';
 
 /// 应用统一的 Material 3 排版刻度。
 ///
-/// [textTheme] 把固定字号、行高、字重和零字距绑定到当前 [ColorScheme]，业务 Widget
+/// [textTheme] 把设计字号、行高、字重和零字距绑定到当前 [ColorScheme]，业务 Widget
 /// 应从 `Theme.of(context).textTheme` 读取语义样式，而不是直接依赖本类。模板暂不捆绑
 /// 第三方字体，因而继续使用 Android/iOS 的系统字体与 Flutter fallback；引入字体文件
 /// 时必须同时核对许可证、登记 pubspec 资源并更新资源 ADR。
 abstract final class AppTypography {
-  /// 为 [colorScheme] 创建完整且不随视口宽度改变字号的文字主题。
+  /// 为 [colorScheme] 创建完整且按项目设计宽度换算字号的文字主题。
   ///
-  /// 返回对象没有缓存和副作用。Flutter 仍会按用户无障碍文字缩放设置调整最终排版；
-  /// 调用方不得通过固定 textScaler 抵消系统设置。
-  static TextTheme textTheme(ColorScheme colorScheme) {
+  /// [context] 必须位于 [AppScreenAdaptation] 下方。这里只把设计字号通过
+  /// [AppDesignUnitContext.dsp] 换算一次，Flutter 随后仍会按用户无障碍文字缩放设置调整
+  /// 最终排版；调用方不得通过固定 TextScaler 抵消系统设置。返回对象没有缓存和副作用。
+  static TextTheme textTheme(BuildContext context, ColorScheme colorScheme) {
+    return _apply(colorScheme, fontSizeFactor: context.dsp(1));
+  }
+
+  /// 为不依赖正常应用初始化结果的安全 fallback 创建 1:1 文字主题。
+  ///
+  /// 该入口只供启动失败应用使用，不能让正常页面借此绕过 [textTheme] 的设计单位换算。
+  /// 1:1 只表示设计字号不按屏幕宽度换算，Flutter 的系统文字缩放仍然保留。
+  static TextTheme fallbackTextTheme(ColorScheme colorScheme) {
+    return _apply(colorScheme, fontSizeFactor: 1);
+  }
+
+  static TextTheme _apply(
+    ColorScheme colorScheme, {
+    required double fontSizeFactor,
+  }) {
     return _base.apply(
       bodyColor: colorScheme.onSurface,
       displayColor: colorScheme.onSurface,
+      fontSizeFactor: fontSizeFactor,
     );
   }
 

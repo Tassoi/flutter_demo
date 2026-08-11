@@ -1,5 +1,8 @@
-# Launch Screen Assets
+# 启动图片生成产物
 
-You can customize the launch screen with your own desired assets by replacing the image files in this directory.
+本目录由 `dart run tool/generate_branding.dart` 根据 `assets/branding/splash_logo.png`
+生成。不要直接替换 PNG，也不要在 Xcode 中向本目录拖入文件；手工改动会被
+`dart run tool/generate_branding.dart --check` 识别为过期或未知产物。
 
-You can also do it by opening your Flutter project's Xcode project with `open ios/Runner.xcworkspace`, selecting `Runner/Assets.xcassets` in the Project Navigator and dropping in the desired images.
+替换正式品牌时，请先更新经过授权的源图和 `assets/branding/LICENSE.md`，再按
+`docs/branding.md` 的步骤重新生成、检查并执行平台构建。
