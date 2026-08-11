@@ -59,8 +59,9 @@ jobs:
           actual_revision="$(git -C "$FLUTTER_ROOT" rev-parse HEAD)"
           test "$actual_revision" = "$FLUTTER_REVISION"
           # Flutter 3.29.0 reads origin/master while bootstrapping a detached SDK.
-          # Restore this local-only ref after every cache restore without fetching a moving branch.
+          # Restore local-only version refs after every cache restore without fetching moving refs.
           git -C "$FLUTTER_ROOT" update-ref refs/remotes/origin/master "$FLUTTER_REVISION"
+          git -C "$FLUTTER_ROOT" update-ref "refs/tags/$FLUTTER_VERSION" "$FLUTTER_REVISION"
           echo "$FLUTTER_ROOT/bin" >> "$GITHUB_PATH"
 
       - name: Restore pub cache
@@ -154,8 +155,9 @@ jobs:
           actual_revision="$(git -C "$FLUTTER_ROOT" rev-parse HEAD)"
           test "$actual_revision" = "$FLUTTER_REVISION"
           # Flutter 3.29.0 reads origin/master while bootstrapping a detached SDK.
-          # Restore this local-only ref after every cache restore without fetching a moving branch.
+          # Restore local-only version refs after every cache restore without fetching moving refs.
           git -C "$FLUTTER_ROOT" update-ref refs/remotes/origin/master "$FLUTTER_REVISION"
+          git -C "$FLUTTER_ROOT" update-ref "refs/tags/$FLUTTER_VERSION" "$FLUTTER_REVISION"
           echo "$FLUTTER_ROOT/bin" >> "$GITHUB_PATH"
 
       - name: Restore pub cache
@@ -228,8 +230,9 @@ jobs:
           actual_revision="$(git -C "$FLUTTER_ROOT" rev-parse HEAD)"
           test "$actual_revision" = "$FLUTTER_REVISION"
           # Flutter 3.29.0 reads origin/master while bootstrapping a detached SDK.
-          # Restore this local-only ref after every cache restore without fetching a moving branch.
+          # Restore local-only version refs after every cache restore without fetching moving refs.
           git -C "$FLUTTER_ROOT" update-ref refs/remotes/origin/master "$FLUTTER_REVISION"
+          git -C "$FLUTTER_ROOT" update-ref "refs/tags/$FLUTTER_VERSION" "$FLUTTER_REVISION"
           echo "$FLUTTER_ROOT/bin" >> "$GITHUB_PATH"
 
       - name: Restore pub cache

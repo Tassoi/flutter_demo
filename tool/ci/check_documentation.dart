@@ -5,6 +5,9 @@ const String _qualityWorkflowPath = '.github/workflows/quality.yml';
 const String _flutterSdkCompatibilityRefCommand =
     'git -C "\$FLUTTER_ROOT" update-ref refs/remotes/origin/master '
     '"\$FLUTTER_REVISION"';
+const String _flutterSdkVersionTagCommand =
+    'git -C "\$FLUTTER_ROOT" update-ref '
+    '"refs/tags/\$FLUTTER_VERSION" "\$FLUTTER_REVISION"';
 const String _flutterConfigureCommand = 'run: flutter config --no-analytics';
 
 const Set<String> _requiredDocumentationPaths = <String>{
@@ -419,11 +422,12 @@ void _validateOrderedCommands({
   }
 }
 
-/// 校验三个 CI 作业恢复固定 Flutter SDK 后都重建启动所需的兼容引用。
+/// 校验三个 CI 作业恢复固定 Flutter SDK 后都重建启动所需的版本引用。
 ///
 /// Flutter 3.29.0 在 detached checkout 中仍会读取 `origin/master`。该引用只应指向已经校验的
-/// `FLUTTER_REVISION`，不能通过拉取会移动的远程分支来补齐，否则缓存命中与未命中可能使用不同
-/// 的版本图。检查按三个 `flutter config` 分段，防止三条命令被误放进同一个作业而假通过。
+/// `FLUTTER_REVISION`；浅检出还必须具备 `FLUTTER_VERSION` 对应的本地 Tag，否则 Flutter 会把
+/// 版本报告为 `0.0.0-unknown`。两类引用都不能通过拉取会移动的远程引用来补齐，否则缓存命中与
+/// 未命中可能使用不同版本图。检查按三个 `flutter config` 分段，防止命令集中在一个作业而假通过。
 void _validateFlutterSdkBootstrap({
   required String qualityWorkflow,
   required List<String> violations,
@@ -432,10 +436,10 @@ void _validateFlutterSdkBootstrap({
       RegExp(
         RegExp.escape(_flutterConfigureCommand),
       ).allMatches(qualityWorkflow).toList();
-  final compatibilityMatches =
-      RegExp(
-        RegExp.escape(_flutterSdkCompatibilityRefCommand),
-      ).allMatches(qualityWorkflow).toList();
+  const requiredCommands = <String>[
+    _flutterSdkCompatibilityRefCommand,
+    _flutterSdkVersionTagCommand,
+  ];
 
   var segmentStart = 0;
   var segmentsAreValid = configureMatches.length == 3;
@@ -444,20 +448,25 @@ void _validateFlutterSdkBootstrap({
       segmentStart,
       configureMatch.start,
     );
-    final segmentCommandCount =
-        RegExp(
-          RegExp.escape(_flutterSdkCompatibilityRefCommand),
-        ).allMatches(segment).length;
-    if (segmentCommandCount != 1) {
-      segmentsAreValid = false;
+    for (final command in requiredCommands) {
+      final segmentCommandCount =
+          RegExp(RegExp.escape(command)).allMatches(segment).length;
+      if (segmentCommandCount != 1) {
+        segmentsAreValid = false;
+      }
     }
     segmentStart = configureMatch.end;
   }
 
-  if (!segmentsAreValid || compatibilityMatches.length != 3) {
+  final commandCountsAreValid = requiredCommands.every(
+    (command) =>
+        RegExp(RegExp.escape(command)).allMatches(qualityWorkflow).length == 3,
+  );
+  if (!segmentsAreValid || !commandCountsAreValid) {
     violations.add(
       '[DOC_QUALITY_FLUTTER_BOOTSTRAP] $_qualityWorkflowPath 的 quality、Android 和 iOS '
-      '作业必须在调用 flutter config 前各自把 origin/master 重建到固定 FLUTTER_REVISION。',
+      '作业必须在调用 flutter config 前各自把 origin/master 和本地版本 Tag 重建到固定 '
+      'FLUTTER_REVISION。',
     );
   }
 }

@@ -5,6 +5,9 @@ import '../../../tool/ci/check_documentation.dart';
 const String _flutterSdkCompatibilityRefCommand =
     'git -C "\$FLUTTER_ROOT" update-ref refs/remotes/origin/master '
     '"\$FLUTTER_REVISION"';
+const String _flutterSdkVersionTagCommand =
+    'git -C "\$FLUTTER_ROOT" update-ref '
+    '"refs/tags/\$FLUTTER_VERSION" "\$FLUTTER_REVISION"';
 
 void main() {
   group('validateDocumentation', () {
@@ -80,6 +83,25 @@ void main() {
       final fixture = _validFixture();
       fixture.qualityWorkflow = fixture.qualityWorkflow.replaceFirst(
         _flutterSdkCompatibilityRefCommand,
+        '',
+      );
+
+      final violations = validateDocumentation(
+        documents: fixture.documents,
+        projectPaths: fixture.projectPaths,
+        qualityWorkflow: fixture.qualityWorkflow,
+      );
+
+      expect(
+        violations.map((violation) => violation.split(' ').first),
+        contains('[DOC_QUALITY_FLUTTER_BOOTSTRAP]'),
+      );
+    });
+
+    test('reports a missing pinned Flutter SDK version tag', () {
+      final fixture = _validFixture();
+      fixture.qualityWorkflow = fixture.qualityWorkflow.replaceFirst(
+        _flutterSdkVersionTagCommand,
         '',
       );
 
@@ -198,11 +220,14 @@ flutter build ios --debug --no-codesign --flavor dev \\
   };
   final qualityWorkflow = '''
 $_flutterSdkCompatibilityRefCommand
+$_flutterSdkVersionTagCommand
 run: flutter config --no-analytics
 $qualityCommands
 $_flutterSdkCompatibilityRefCommand
+$_flutterSdkVersionTagCommand
 run: flutter config --no-analytics
 $_flutterSdkCompatibilityRefCommand
+$_flutterSdkVersionTagCommand
 run: flutter config --no-analytics
 ''';
   return _DocumentationFixture(
