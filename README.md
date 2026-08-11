@@ -15,7 +15,7 @@
 | Flutter | 3.29.0 stable，revision `35c388afb57ef061d06a39b537336c87e0e3d1b1` | CI 精确固定；`pubspec.yaml` 只承诺 `>=3.29.0 <3.30.0` |
 | Dart | 3.7.0 | 由上述 Flutter SDK 携带；支持范围 `>=3.7.0 <3.8.0` |
 | Android | platform 36、build-tools 35.0.1、NDK 27.0.12077973、min SDK 23 | JDK 21 已用于实际构建；项目 Java/Kotlin bytecode 目标为 11 |
-| iOS | iOS 12.0、Xcode 16.2、CocoaPods 1.16.2 | 只能在 macOS 构建；当前主机尚无真实 iOS 编译证据 |
+| iOS | iOS 12.0、Xcode 16.2、CocoaPods 1.16.2 | 只能在 macOS 构建；CI 隔离安装固定 CocoaPods 并构建三套环境 |
 | 环境 | `dev`、`staging`、`prod` | Flutter flavor 和 `APP_ENV` 必须成对且完全一致 |
 
 完整选型证据、许可证、替代方案和主要权衡见
@@ -396,9 +396,9 @@ flutter build ios --debug --no-codesign --flavor dev \
 ```
 
 同样将两个 `dev` 成对替换为 `staging` 或 `prod`。三个 scheme 分别绑定定制的
-Debug/Profile/Release configuration；不存在通用 Runner scheme。当前仓库已通过静态门禁和
-XML/PBX 审计，但当前非 macOS 开发主机无法提供 CocoaPods/Xcode 真实编译证据，这一缺口
-必须由首次 macOS CI 或 macOS 开发机补证。
+Debug/Profile/Release configuration；不存在通用 Runner scheme。当前仓库除静态门禁和 XML/PBX
+审计外，还由 GitHub Actions macOS runner 使用 Xcode 16.2 与隔离安装的 CocoaPods 1.16.2
+执行三环境无签名构建；真实签名、设备图标蒙版与 VoiceOver 仍需业务项目在 Apple 设备上验证。
 
 ## 示例 Feature 与裁剪
 
@@ -490,7 +490,7 @@ Task 17 已在隔离临时副本实际执行上述删除；Task 4 在主题、�
 ## 验证状态与明确缺口
 
 - 当前工作站已通过 149 个 Dart 文件的格式检查、严格分析、固定随机种子与默认顺序各
-  385 项全量测试，以及本地化、SVG 字体、品牌资源、锁文件、36 份工程文档、架构和三环境
+  388 项全量测试，以及本地化、SVG 字体、品牌资源、锁文件、36 份工程文档、架构和三环境
   静态门禁；六档手机视口的正常/200% 文字矩阵和两张参考页面 Golden 同时通过。
 - SVG 字体连续生成两次保持完全相同的 2280-byte OTF 与中文 Dart 映射；dev Debug APK 已
   确认打包同一份 OTF，字体测试和首页 Golden 均渲染真实字形而不是缺字方框。
@@ -516,9 +516,9 @@ Task 17 已在隔离临时副本实际执行上述删除；Task 4 在主题、�
 - Android 15/API 35 x86_64 模拟器已实际验证冷启动品牌画面、launcher 图标、英文/中文切换与
   冷启动持久化、受保护路由、真实 IME、密码掩码和失败清理、横屏安全滚动、示例详情及日志
   脱敏；截图、UI 树和哈希清单保存在忽略目录 `build/device-evidence/`，测试包与数据随后已清理。
-- 当前主机不是 macOS，GitHub Actions 也尚未触发；iOS 三套 scheme、九套构建配置、Bundle ID、
-  `en/zh` 声明、25 个 AppIcon 槽位和 LaunchScreen 已通过静态门禁，但 CocoaPods/Xcode 编译、
-  真实图标蒙版、启动画面、Keychain 与 VoiceOver 仍是明确的 iOS 平台验证缺口。
+- 当前主机不是 macOS；iOS 三套 scheme、九套构建配置、Bundle ID、`en/zh` 声明、25 个 AppIcon
+  槽位和 LaunchScreen 已通过静态门禁，GitHub Actions macOS runner 也使用固定 Xcode/CocoaPods
+  完成三环境无签名编译。真实签名、图标蒙版、启动画面、Keychain 与 VoiceOver 仍是设备验证缺口。
 - release 签名有意缺省，模板当前不能直接发布。
 
 第二阶段已完成基线决策、手机适配、国际化、SVG 图标字体、认证模块、品牌资源生成、基础

@@ -34,11 +34,12 @@
   SafeArea/键盘 Insets 的安全滚动壳层，以及仅限视觉场景的固定画布。主题、共享组件、路由页
   和示例详情已迁移，并通过六档视口各自正常/200% 文字的矩形、语义、滚动与操作矩阵；参考
   首页和详情 Golden 使用 Ahem 测试字体固定字形与度量，并以 Windows/Linux 分离基线隔离宿主
-  边缘栅格化差异。Task 12 完成后，固定随机种子与默认顺序各 387 项全量测试、149 个 Dart 文件
+  边缘栅格化差异。Task 12 完成后，固定随机种子与默认顺序各 388 项全量测试、149 个 Dart 文件
   格式检查、严格分析、全部生成/文档/架构/平台门禁
-  通过；三环境 Debug APK/AAB 已实际构建，API 35 模拟器证据已保存。当前主机非 macOS，iOS
-  只有配置、Catalog、LaunchScreen 和平台门禁静态证据，实际 Xcode/设备验证仍明确保留为缺口。
-  完整逐任务与最终审查证据保存在 `goal-2/tasks.md`。
+  通过；三环境 Debug APK/AAB 已实际构建，API 35 模拟器证据已保存。当前主机非 macOS，但
+  GitHub Actions macOS runner 已使用固定 Xcode/CocoaPods 完成三环境无签名构建；真实签名、
+  图标蒙版、启动画面、Keychain 与 VoiceOver 仍明确保留为设备验证缺口。完整逐任务与最终审查
+  证据保存在 `goal-2/tasks.md`。
 
 本文把 `AGENTS.md` 中第二阶段能力拆成可独立验证的工作单元。当前 Goal 2 已按
 实际 SDK、依赖状态和用户输入建立 `input.md`、`plan.md` 和 `tasks.md`；本文仍是

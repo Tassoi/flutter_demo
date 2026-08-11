@@ -9,6 +9,20 @@ const String _flutterSdkVersionTagCommand =
     'git -C "\$FLUTTER_ROOT" update-ref '
     '"refs/tags/\$FLUTTER_VERSION" "\$FLUTTER_REVISION"';
 const String _flutterConfigureCommand = 'run: flutter config --no-analytics';
+const String _cocoaPodsHomeAssignment =
+    'cocoapods_home="\$RUNNER_TOOL_CACHE/cocoapods/\$COCOAPODS_VERSION"';
+const String _cocoaPodsExportHomeCommand = 'export GEM_HOME="\$cocoapods_home"';
+const String _cocoaPodsExportPathCommand = 'export GEM_PATH="\$cocoapods_home"';
+const String _cocoaPodsInstallCommand =
+    'gem install cocoapods --version "\$COCOAPODS_VERSION" --no-document';
+const String _cocoaPodsHomeCommand =
+    'echo "GEM_HOME=\$cocoapods_home" >> "\$GITHUB_ENV"';
+const String _cocoaPodsPathCommand =
+    'echo "GEM_PATH=\$cocoapods_home" >> "\$GITHUB_ENV"';
+const String _cocoaPodsBinCommand =
+    'echo "\$cocoapods_home/bin" >> "\$GITHUB_PATH"';
+const String _cocoaPodsVerificationCommand =
+    'test "\$(pod --version)" = "\$COCOAPODS_VERSION"';
 
 const Set<String> _requiredDocumentationPaths = <String>{
   'README.md',
@@ -181,6 +195,10 @@ List<String> validateDocumentation({
     violations: violations,
   );
   _validateFlutterSdkBootstrap(
+    qualityWorkflow: qualityWorkflow,
+    violations: violations,
+  );
+  _validateCocoaPodsBootstrap(
     qualityWorkflow: qualityWorkflow,
     violations: violations,
   );
@@ -467,6 +485,45 @@ void _validateFlutterSdkBootstrap({
       '[DOC_QUALITY_FLUTTER_BOOTSTRAP] $_qualityWorkflowPath 的 quality、Android 和 iOS '
       '作业必须在调用 flutter config 前各自把 origin/master 和本地版本 Tag 重建到固定 '
       'FLUTTER_REVISION。',
+    );
+  }
+}
+
+/// 校验 iOS 作业使用隔离且固定的 CocoaPods，而不是可变的 runner 预装版本。
+///
+/// `macos-*` runner 会在不修改本仓库的情况下升级预装 gem。安装命令因此必须把固定版本写入
+/// 独立 `GEM_HOME/GEM_PATH`，再把对应 `bin` 放到后续步骤的 PATH；最后的版本比较证明 Flutter
+/// 调用到的是该隔离安装。检查同时约束命令只出现一次且顺序正确，避免仅增加无效环境变量便
+/// 让文档门禁误通过。
+void _validateCocoaPodsBootstrap({
+  required String qualityWorkflow,
+  required List<String> violations,
+}) {
+  const orderedCommands = <String>[
+    _cocoaPodsHomeAssignment,
+    _cocoaPodsExportHomeCommand,
+    _cocoaPodsExportPathCommand,
+    _cocoaPodsInstallCommand,
+    _cocoaPodsHomeCommand,
+    _cocoaPodsPathCommand,
+    _cocoaPodsBinCommand,
+    _cocoaPodsVerificationCommand,
+  ];
+  var searchStart = 0;
+  var isValid = true;
+  for (final command in orderedCommands) {
+    final matches =
+        RegExp(RegExp.escape(command)).allMatches(qualityWorkflow).toList();
+    if (matches.length != 1 || matches.single.start < searchStart) {
+      isValid = false;
+      continue;
+    }
+    searchStart = matches.single.end;
+  }
+  if (!isValid) {
+    violations.add(
+      '[DOC_QUALITY_COCOAPODS_BOOTSTRAP] $_qualityWorkflowPath 的 iOS 作业必须把固定 '
+      'CocoaPods 安装到隔离 GEM_HOME/GEM_PATH、配置其 PATH，并在构建前核对版本。',
     );
   }
 }

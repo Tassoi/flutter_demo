@@ -246,6 +246,17 @@ jobs:
       - name: Configure Flutter
         run: flutter config --no-analytics
 
+      - name: Install pinned CocoaPods
+        shell: bash
+        run: |
+          cocoapods_home="$RUNNER_TOOL_CACHE/cocoapods/$COCOAPODS_VERSION"
+          export GEM_HOME="$cocoapods_home"
+          export GEM_PATH="$cocoapods_home"
+          gem install cocoapods --version "$COCOAPODS_VERSION" --no-document
+          echo "GEM_HOME=$cocoapods_home" >> "$GITHUB_ENV"
+          echo "GEM_PATH=$cocoapods_home" >> "$GITHUB_ENV"
+          echo "$cocoapods_home/bin" >> "$GITHUB_PATH"
+
       - name: Verify pinned Xcode and CocoaPods
         shell: bash
         run: |

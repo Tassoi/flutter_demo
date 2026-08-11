@@ -103,8 +103,9 @@ iOS PluginRegistrant、Generated.xcconfig、`.dart_tool/` 和构建目录是被�
 5. 质量门禁顺序固定为隔离锁文件/metadata 检查、锁定依赖、本地化、SVG 字体与品牌资源只读
    生成检查、Agent 指南临时项目契约、文档契约、架构检查、原生环境一致性、格式、严格分析和
    固定 seed 全量测试。质量任务通过后，Android/iOS 任务才构建三套环境；本阶段没有发布流程。
-6. iOS 任务除固定 Xcode 16.2 外，还要求 runner 的 CocoaPods 精确为 1.16.2；版本漂移应直接
-   失败并经过显式升级验证，不能让可变的预装工具静默改写 Pods 集成结果。
+6. iOS 任务除固定 Xcode 16.2 外，还把 CocoaPods 1.16.2 安装到独立的 `GEM_HOME/GEM_PATH`，
+   并在构建前核对 PATH 中的版本。runner 的预装 gem 会随镜像更新，不得让它静默改写 Pods
+   集成结果；固定版本升级仍需经过显式兼容性验证。
 
 ## 本地等价命令
 
@@ -157,8 +158,8 @@ Task 18 的产物时间戳审计进一步发现，当时使用的聚合任务 `d
 
 审查同时依据 CocoaPods 1.16.2 的官方实现确认，其 aggregate xcconfig 文件名使用完整 Xcode
 configuration。iOS 现在为 9 个 configuration 使用一一对应的包装 xcconfig，平台门禁会拒绝
-错误或缺失的 Pods include；workflow 也显式核对 CocoaPods 1.16.2。真实 iOS 编译仍必须由
-macOS runner 提供证据，静态修复不能替代该平台验证。
+错误或缺失的 Pods include；workflow 会隔离安装并显式核对 CocoaPods 1.16.2。真实 iOS 编译
+由 GitHub Actions macOS runner 对三套环境提供证据，静态修复不能替代该平台验证。
 
 ## Task 16 生成检查语义修正
 

@@ -8,6 +8,8 @@ const String _flutterSdkCompatibilityRefCommand =
 const String _flutterSdkVersionTagCommand =
     'git -C "\$FLUTTER_ROOT" update-ref '
     '"refs/tags/\$FLUTTER_VERSION" "\$FLUTTER_REVISION"';
+const String _cocoaPodsInstallCommand =
+    'gem install cocoapods --version "\$COCOAPODS_VERSION" --no-document';
 
 void main() {
   group('validateDocumentation', () {
@@ -114,6 +116,25 @@ void main() {
       expect(
         violations.map((violation) => violation.split(' ').first),
         contains('[DOC_QUALITY_FLUTTER_BOOTSTRAP]'),
+      );
+    });
+
+    test('reports a missing isolated pinned CocoaPods install', () {
+      final fixture = _validFixture();
+      fixture.qualityWorkflow = fixture.qualityWorkflow.replaceFirst(
+        _cocoaPodsInstallCommand,
+        '',
+      );
+
+      final violations = validateDocumentation(
+        documents: fixture.documents,
+        projectPaths: fixture.projectPaths,
+        qualityWorkflow: fixture.qualityWorkflow,
+      );
+
+      expect(
+        violations.map((violation) => violation.split(' ').first),
+        contains('[DOC_QUALITY_COCOAPODS_BOOTSTRAP]'),
       );
     });
 
@@ -229,6 +250,14 @@ run: flutter config --no-analytics
 $_flutterSdkCompatibilityRefCommand
 $_flutterSdkVersionTagCommand
 run: flutter config --no-analytics
+cocoapods_home="\$RUNNER_TOOL_CACHE/cocoapods/\$COCOAPODS_VERSION"
+export GEM_HOME="\$cocoapods_home"
+export GEM_PATH="\$cocoapods_home"
+$_cocoaPodsInstallCommand
+echo "GEM_HOME=\$cocoapods_home" >> "\$GITHUB_ENV"
+echo "GEM_PATH=\$cocoapods_home" >> "\$GITHUB_ENV"
+echo "\$cocoapods_home/bin" >> "\$GITHUB_PATH"
+test "\$(pod --version)" = "\$COCOAPODS_VERSION"
 ''';
   return _DocumentationFixture(
     documents: documents,
