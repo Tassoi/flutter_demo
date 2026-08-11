@@ -2,6 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../../tool/ci/check_documentation.dart';
 
+const String _flutterSdkCompatibilityRefCommand =
+    'git -C "\$FLUTTER_ROOT" update-ref refs/remotes/origin/master '
+    '"\$FLUTTER_REVISION"';
+
 void main() {
   group('validateDocumentation', () {
     test(
@@ -69,6 +73,25 @@ void main() {
           '[DOC_COMMAND_TARGET_MISSING]',
           '[DOC_QUALITY_COMMAND_DRIFT]',
         }),
+      );
+    });
+
+    test('reports a missing pinned Flutter SDK compatibility ref', () {
+      final fixture = _validFixture();
+      fixture.qualityWorkflow = fixture.qualityWorkflow.replaceFirst(
+        _flutterSdkCompatibilityRefCommand,
+        '',
+      );
+
+      final violations = validateDocumentation(
+        documents: fixture.documents,
+        projectPaths: fixture.projectPaths,
+        qualityWorkflow: fixture.qualityWorkflow,
+      );
+
+      expect(
+        violations.map((violation) => violation.split(' ').first),
+        contains('[DOC_QUALITY_FLUTTER_BOOTSTRAP]'),
       );
     });
 
@@ -173,10 +196,19 @@ flutter build ios --debug --no-codesign --flavor dev \\
     'tool/generate_icon_font.dart',
     'tool/generate_localizations.dart',
   };
+  final qualityWorkflow = '''
+$_flutterSdkCompatibilityRefCommand
+run: flutter config --no-analytics
+$qualityCommands
+$_flutterSdkCompatibilityRefCommand
+run: flutter config --no-analytics
+$_flutterSdkCompatibilityRefCommand
+run: flutter config --no-analytics
+''';
   return _DocumentationFixture(
     documents: documents,
     projectPaths: projectPaths,
-    qualityWorkflow: qualityCommands,
+    qualityWorkflow: qualityWorkflow,
   );
 }
 

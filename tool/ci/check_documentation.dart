@@ -2,6 +2,10 @@ import 'dart:io';
 
 const String _operationsGuidePath = 'docs/phase-2-operations.md';
 const String _qualityWorkflowPath = '.github/workflows/quality.yml';
+const String _flutterSdkCompatibilityRefCommand =
+    'git -C "\$FLUTTER_ROOT" update-ref refs/remotes/origin/master '
+    '"\$FLUTTER_REVISION"';
+const String _flutterConfigureCommand = 'run: flutter config --no-analytics';
 
 const Set<String> _requiredDocumentationPaths = <String>{
   'README.md',
@@ -171,6 +175,10 @@ List<String> validateDocumentation({
   _validateOrderedCommands(
     ownerPath: _qualityWorkflowPath,
     content: qualityWorkflow,
+    violations: violations,
+  );
+  _validateFlutterSdkBootstrap(
+    qualityWorkflow: qualityWorkflow,
     violations: violations,
   );
 
@@ -408,6 +416,49 @@ void _validateOrderedCommands({
       continue;
     }
     searchStart = index + command.length;
+  }
+}
+
+/// 校验三个 CI 作业恢复固定 Flutter SDK 后都重建启动所需的兼容引用。
+///
+/// Flutter 3.29.0 在 detached checkout 中仍会读取 `origin/master`。该引用只应指向已经校验的
+/// `FLUTTER_REVISION`，不能通过拉取会移动的远程分支来补齐，否则缓存命中与未命中可能使用不同
+/// 的版本图。检查按三个 `flutter config` 分段，防止三条命令被误放进同一个作业而假通过。
+void _validateFlutterSdkBootstrap({
+  required String qualityWorkflow,
+  required List<String> violations,
+}) {
+  final configureMatches =
+      RegExp(
+        RegExp.escape(_flutterConfigureCommand),
+      ).allMatches(qualityWorkflow).toList();
+  final compatibilityMatches =
+      RegExp(
+        RegExp.escape(_flutterSdkCompatibilityRefCommand),
+      ).allMatches(qualityWorkflow).toList();
+
+  var segmentStart = 0;
+  var segmentsAreValid = configureMatches.length == 3;
+  for (final configureMatch in configureMatches) {
+    final segment = qualityWorkflow.substring(
+      segmentStart,
+      configureMatch.start,
+    );
+    final segmentCommandCount =
+        RegExp(
+          RegExp.escape(_flutterSdkCompatibilityRefCommand),
+        ).allMatches(segment).length;
+    if (segmentCommandCount != 1) {
+      segmentsAreValid = false;
+    }
+    segmentStart = configureMatch.end;
+  }
+
+  if (!segmentsAreValid || compatibilityMatches.length != 3) {
+    violations.add(
+      '[DOC_QUALITY_FLUTTER_BOOTSTRAP] $_qualityWorkflowPath 的 quality、Android 和 iOS '
+      '作业必须在调用 flutter config 前各自把 origin/master 重建到固定 FLUTTER_REVISION。',
+    );
   }
 }
 

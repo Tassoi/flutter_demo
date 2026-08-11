@@ -96,7 +96,9 @@ iOS PluginRegistrant、Generated.xcconfig、`.dart_tool/` 和构建目录是被�
 2. GitHub Actions 固定到完整 commit SHA，并在旁边记录可审查版本；不依赖移动 tag。
 3. runner 固定 `ubuntu-24.04`，任务总超时 30 分钟，同一 ref 的旧任务可被取消。
 4. Flutter SDK 缓存以完整 framework revision 为键；pub 缓存以锁文件哈希为键，并保留受约束
-   的 restore prefix。缓存只优化下载，不替代 revision、checksum 和锁文件验证。
+   的 restore prefix。缓存只优化下载，不替代 revision、checksum 和锁文件验证。Flutter 3.29.0
+   在 detached checkout 启动时仍读取 `origin/master`，因此三个 job 每次恢复缓存后都把这个仅限
+   本地的兼容引用重建到已校验的 `FLUTTER_REVISION`，不得为此拉取会移动的远程分支。
 5. 质量门禁顺序固定为隔离锁文件/metadata 检查、锁定依赖、本地化、SVG 字体与品牌资源只读
    生成检查、Agent 指南临时项目契约、文档契约、架构检查、原生环境一致性、格式、严格分析和
    固定 seed 全量测试。质量任务通过后，Android/iOS 任务才构建三套环境；本阶段没有发布流程。
