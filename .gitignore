@@ -49,4 +49,3 @@ app.*.map.json
 # machine-local values. Only the explicit, non-sensitive examples are tracked.
 /config/*.json
 !/config/*.example.json
-docs/

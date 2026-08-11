@@ -1,0 +1,2 @@
+# Keep tracked text files deterministic across Windows, WSL, macOS, and CI.
+* text=auto eol=lf
